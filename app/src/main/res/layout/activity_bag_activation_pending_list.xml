@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:background="@color/bg_color"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".activity.BagActivationPendingListActivity">
+
+    <include android:id="@+id/include"
+        layout="@layout/toolbar" />
+
+    <!-- Page Title -->
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pending Bag Activation List"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:layout_gravity="center"
+        android:padding="8dp" />
+
+    <!-- RecyclerView to show pending list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvPendingList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        tools:listitem="@layout/activation_pending_list"
+        android:clipToPadding="false" />
+
+    <!-- Submit Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAddNew"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/add_new"
+        android:backgroundTint="@color/light_blue"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="8dp"
+        app:cornerRadius="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="4dp"
+        android:layout_marginHorizontal="4dp"
+        android:elevation="4dp"/>
+
+</LinearLayout>

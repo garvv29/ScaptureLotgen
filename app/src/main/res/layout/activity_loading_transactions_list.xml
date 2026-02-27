@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_color"
+    tools:context=".activity.LoadingTransactionsListActivity">
+
+    <include android:id="@+id/include"
+        layout="@layout/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- Page Title -->
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pending Bag Loading List"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:padding="8dp" />
+
+    <!-- RecyclerView to show pending list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvPendingList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        tools:listitem="@layout/loading_pending_list"
+        android:paddingTop="8dp"
+        android:paddingEnd="12dp"
+        android:paddingStart="12dp"
+        android:clipToPadding="false" />
+
+    <!-- Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAddNew"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/add_new"
+        android:backgroundTint="@color/light_blue"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="8dp"
+        app:cornerRadius="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="4dp"
+        android:layout_marginHorizontal="4dp"
+        android:elevation="4dp"/>
+
+</LinearLayout>

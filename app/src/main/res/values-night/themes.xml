@@ -1,0 +1,29 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Lotgen" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Customize your dark theme here. -->
+        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+
+        <!-- Status bar background -->
+        <item name="android:statusBarColor">@color/light_blue</item>
+
+        <!-- Control icon color:
+             true = dark icons,
+             false = light icons -->
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Important: disable transparent system bars -->
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:windowFullscreen">false</item>
+
+        <item name="textInputStyle">@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox</item>
+
+        <item name="android:datePickerStyle">@style/CustomDatePickerStyle</item>
+    </style>
+
+    <style name="MyTextInputStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="android:textSize">16sp</item>
+        <item name="android:padding">12dp</item>
+    </style>
+</resources>

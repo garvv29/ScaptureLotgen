@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="2dp"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/tvSrno"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.4"
+        android:layout_marginStart="2dp"
+        android:textColor="@color/black"
+        android:textStyle="bold"
+        android:text="SrNo"/>
+
+    <TextView
+        android:id="@+id/tvLotNo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.3"
+        android:layout_marginStart="2dp"
+        android:textColor="@color/black"
+        android:textStyle="bold"
+        android:text="Lot"/>
+
+    <TextView
+        android:id="@+id/tvCrop"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.4"
+        android:layout_marginStart="2dp"
+        android:textColor="@color/black"
+        android:textStyle="bold"
+        android:text="Crop"/>
+
+    <TextView
+        android:id="@+id/tvSLOC"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.3"
+        android:layout_marginStart="2dp"
+        android:textColor="@color/black"
+        android:textStyle="bold"
+        android:text="SLOC"/>
+
+    <TextView
+        android:id="@+id/tvBags"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.4"
+        android:layout_marginStart="2dp"
+        android:textColor="@color/black"
+        android:textStyle="bold"
+        android:text="0"/>
+
+</LinearLayout>

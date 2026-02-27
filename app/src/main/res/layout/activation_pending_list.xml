@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    android:layout_marginBottom="0dp"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:strokeColor="#E5E7EB"
+    app:strokeWidth="1dp"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:backgroundTint="@android:color/white">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="14dp">
+
+        <!-- small blue label "Lot Number #" -->
+        <TextView
+            android:id="@+id/tvLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lot Number"
+            android:textSize="12sp"
+            android:textColor="#2563EB"
+            android:textStyle="bold"/>
+
+        <!-- Edit / pencil icon on the right -->
+        <ImageButton
+            android:id="@+id/btnEdit"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/edit_icon"
+            app:tint="#374151"
+            android:contentDescription="Edit"/>
+
+        <!-- Lot title big -->
+        <TextView
+            android:id="@+id/tvLotNo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lot 001"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="start"
+            android:textColor="#0F1724"
+            android:layout_below="@id/tvLabel"
+            android:layout_marginTop="6dp"/>
+
+        <!-- Date -->
+        <TextView
+            android:id="@+id/tvDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="19 Jan 2024"
+            android:textSize="12sp"
+            android:textColor="#6B7280"
+            android:layout_below="@id/tvLotNo"
+            android:layout_marginTop="6dp"/>
+
+        <!-- Divider -->
+        <View
+            android:id="@+id/divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_below="@id/tvDate"
+            android:layout_marginTop="12dp"
+            android:background="#F3F4F6"/>
+
+        <!-- Row with three columns: Txn ID / Total Qty. / Bag Count -->
+        <LinearLayout
+            android:id="@+id/rowStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/divider"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:weightSum="3">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvTxnLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Txn ID"
+                    android:textSize="12sp"
+                    android:textColor="#9CA3AF"/>
+
+                <TextView
+                    android:id="@+id/tvTransaction"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/textdata_color"
+                    android:layout_marginTop="4dp"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvQtyLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Total Qty."
+                    android:textSize="12sp"
+                    android:textColor="#9CA3AF" />
+
+                <TextView
+                    android:id="@+id/tvQty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/textdata_color"
+                    android:layout_marginTop="4dp"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvBagLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bag Count"
+                    android:textSize="12sp"
+                    android:textColor="#9CA3AF"/>
+
+                <TextView
+                    android:id="@+id/tvBags"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#374151"
+                    android:layout_marginTop="4dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
+</com.google.android.material.card.MaterialCardView>

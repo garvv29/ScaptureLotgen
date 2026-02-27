@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_color"
+    tools:context=".activity.LoadingSetupActivity">
+
+    <include android:id="@+id/include"
+        layout="@layout/toolbar" />
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:orientation="vertical">
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Vehicle Loading Setup"
+                android:textColor="#000000"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/tvSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Activate your bag here"
+                android:textColor="#666666"
+                android:textSize="14sp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Tr Name -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Transport Name"
+                android:textColor="@color/label_color"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/etTrName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:background="@drawable/edittext_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Vehicle Number -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Vehicle Number"
+                android:textColor="@color/label_color"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/etVehicleNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:background="@drawable/edittext_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- LR Number -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LR Number"
+                android:textColor="@color/label_color"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/etLRNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:background="@drawable/edittext_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Driver Name -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Driver Name"
+                android:textColor="@color/label_color"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/etDriverName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint=""
+                android:inputType="textPersonName"
+                android:background="@drawable/edittext_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Mobile Number -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mobile Number"
+                android:textColor="@color/label_color"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/etMobileNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint=""
+                android:inputType="phone"
+                android:maxLength="10"
+                android:background="@drawable/edittext_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Destination -->
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Destination"
+                app:endIconMode="dropdown_menu"
+                android:layout_marginBottom="12dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <AutoCompleteTextView
+                    android:id="@+id/dd_destination"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:completionThreshold="1"
+                    android:enabled="false"
+                    android:dropDownHeight="wrap_content"
+                    android:dropDownVerticalOffset="8dp"
+                    android:dropDownHorizontalOffset="0dp"
+                    android:padding="8dp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Destination"
+                android:textColor="@color/label_color"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+            <AutoCompleteTextView
+                android:id="@+id/actDestination"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Destination"
+                android:inputType="text"
+                android:visibility="gone"
+                android:background="@drawable/edittext_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Dispatch Date -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dispatch Date"
+                android:textColor="@color/label_color"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/etDispatchDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Dispatch Date"
+                android:focusable="false"
+                android:inputType="date"
+                android:drawableEnd="@drawable/calender"
+                android:background="@drawable/edittext_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Submit Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSubmit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Submit"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                app:cornerRadius="8dp"
+                android:backgroundTint="#0066FF"
+                android:padding="12dp"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>

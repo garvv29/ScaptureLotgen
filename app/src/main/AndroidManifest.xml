@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" /> <!-- Internet Permission -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/scapture_icon"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/scapture_icon"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Lotgen">
+        <activity
+            android:name=".activity.GsSLOCShiftingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.GaurdSampleActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.PrintBagsLabelActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.TrWisePendingLotListReportActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.LotRecTrListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.LotReceiveListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.LotReceiveActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".activity.BagActivationPendingListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".login.NewLoginActivity"
+            android:exported="true">
+
+            <!--
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            -->
+        </activity>
+        <activity
+            android:name=".activity.LoadingTransactionsListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.LoadingScanningActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.LoadingSetupActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".activity.BagsActivationScanningActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.BagsActivationSetupActivity"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".login.LoginActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustPan">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.MyApp.NoActionBar">
+
+            <!--
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            -->
+        </activity>
+    </application>
+
+</manifest>
