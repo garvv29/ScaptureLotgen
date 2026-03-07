@@ -51,8 +51,7 @@ public interface ApiInterface {
                                            @Query("farmerid") String farmerID);
 
     @GET("remarkslist.php")
-    Call<ActRemarksListResponse> getRemarksList(@Query("scode") String scode, @Query("type") String type,
-                                                @Query("lotno") String lot);
+    Call<ActRemarksListResponse> getRemarksList(@Query("scode") String scode, @Query("type") String type);
 
     @GET("actbarlist.php")
     Call<ActBarcodeListResponse> getActBarList(@Query("scode") String scode, @Query("trid") String trid);
@@ -107,7 +106,7 @@ public interface ApiInterface {
                                                 @Query("lotno") String lot, @Query("harvestdate") String harvestDate,
                                                 @Query("nob") String bags, @Query("trid") String trid,
                                                 @Query("whid") String tare, @Query("binid") String gotStatus,
-                                                @Query("rowid") Integer rowid);
+                                                @Query("rowid") Integer rowid, @Query("tagType") String tagType);
 
     @GET("rectrlotlist.php")
     Call<RecPendingLotListResponse> getLotRecPendingList(@Query("mobile1") String mobile, @Query("scode") String scode,

@@ -50,8 +50,7 @@ import kotlin.io.TextStreamsKt;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-
-public class BagsActivationSetupActivity extends AppCompatActivity {
+public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
     AutoCompleteTextView actLotNumber,actProdGrade,actRemarks;
     EditText etHarvestDate, etNumberOfBags, etTotalWeight, etTareWeight, etRemarks, etMoisture;
     TextInputLayout til_remarks;
@@ -89,8 +88,15 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                // Instead of calling super.onBackPressed(), handle custom logic here
-                Intent intent = new Intent(BagsActivationSetupActivity.this, BagActivationPendingListActivity.class);
+                // Custom back navigation based on source activity
+                String sourceActivity = getIntent().getStringExtra("sourceActivity");
+                Intent intent;
+                
+                if ("LotReceiveActivity".equals(sourceActivity)) {
+                    intent = new Intent(BagsActivationSetupActivityPrintRoll.this, LotReceiveActivity.class);
+                } else {
+                    intent = new Intent(BagsActivationSetupActivityPrintRoll.this, BagActivationPendingListActivity.class);
+                }
                 startActivity(intent);
                 finish();
             }
@@ -175,7 +181,7 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                     System.out.print("Response : " + actLotListResponse);
                     if (actLotListResponse != null) {
                         if (actLotListResponse.getStatus()) {
-                            Toast.makeText(BagsActivationSetupActivity.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(BagsActivationSetupActivityPrintRoll.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
                             lots = actLotListResponse.getData();
                             ArrayAdapter<String> adapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_dropdown_item_1line, lots);
                             actLotNumber.setAdapter(adapter);
@@ -183,8 +189,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                             actLotNumber.setOnClickListener(v -> actLotNumber.showDropDown());
                             getRemarksList();
                         } else {
-                            Utils.showAlert(BagsActivationSetupActivity.this, actLotListResponse.getMsg());
-                            //Toast.makeText(BagsActivationSetupActivity.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, actLotListResponse.getMsg());
+                            //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
                         }
                         progressDialog.cancel();
                     }
@@ -194,8 +200,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                         try {
                             JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
                             String msg = jsonObj.getString("msg");
-                            Utils.showAlert(BagsActivationSetupActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
+                            Utils.showAlert(BagsActivationSetupActivityPrintRoll.this,msg);
+                            //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, msg, Toast.LENGTH_SHORT).show();
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -207,8 +213,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
             public void onFailure(@NonNull Call<ActLotListResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
-                Utils.showAlert(BagsActivationSetupActivity.this,"RetrofitError : " + t.getMessage());
-                //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Utils.showAlert(BagsActivationSetupActivityPrintRoll.this,"RetrofitError : " + t.getMessage());
+                //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -235,8 +241,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                             actRemarks.setAdapter(remarksAdapter);
                             actRemarks.setOnClickListener(v -> actRemarks.showDropDown());
                         } else {
-                            Utils.showAlert(BagsActivationSetupActivity.this, actRemarksListResponse.getMsg());
-                            //Toast.makeText(BagsActivationSetupActivity.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, actRemarksListResponse.getMsg());
+                            //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
                         }
                         progressDialog.cancel();
                     }
@@ -246,8 +252,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                         try {
                             JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
                             String msg = jsonObj.getString("msg");
-                            Utils.showAlert(BagsActivationSetupActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
+                            Utils.showAlert(BagsActivationSetupActivityPrintRoll.this,msg);
+                            //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, msg, Toast.LENGTH_SHORT).show();
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -259,8 +265,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
             public void onFailure(@NonNull Call<ActRemarksListResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
-                Utils.showAlert(BagsActivationSetupActivity.this,"RetrofitError : " + t.getMessage());
-                //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Utils.showAlert(BagsActivationSetupActivityPrintRoll.this,"RetrofitError : " + t.getMessage());
+                //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -337,13 +343,13 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
         String gotStatus = ((RadioButton) findViewById(rgGOT.getCheckedRadioButtonId())).getText().toString();
         //String moisture = ((RadioButton) findViewById(rgMoisture.getCheckedRadioButtonId())).getText().toString();
         if (lot.isEmpty() || bags.isEmpty() || rgGOT.getCheckedRadioButtonId() == -1 || selProdGrade.isEmpty() || moisture.isEmpty()) {
-            Utils.showAlert(this,"Please fill all fields");
+            Utils.showAlert(this, "Please fill all fields");
             //Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (Double.parseDouble(moisture)>=4 && Double.parseDouble(moisture)<=13) {
-            Dialog dialog = new Dialog(BagsActivationSetupActivity.this);
+            Dialog dialog = new Dialog(BagsActivationSetupActivityPrintRoll.this);
             dialog.setContentView(R.layout.submit_confirm_alert);
             Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
             /*TextView text = dialog.findViewById(R.id.tv_message);
@@ -353,12 +359,12 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
             dialog.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
             dialog.setCancelable(false);
             dialog.show();
-        }else {
-            if (Double.parseDouble(moisture)>99){
-                Utils.showAlert(this,"Moisture value cannot be greater than 99");
+        } else {
+            if (Double.parseDouble(moisture) > 99) {
+                Utils.showAlert(this, "Moisture value cannot be greater than 99");
                 return;
             }
-            Dialog dialog = new Dialog(BagsActivationSetupActivity.this);
+            Dialog dialog = new Dialog(BagsActivationSetupActivityPrintRoll.this);
             dialog.setContentView(R.layout.submit_confirm_alert);
             Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
             TextView text = dialog.findViewById(R.id.tv_message);
@@ -389,13 +395,20 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                     System.out.print("Response : " + activationSubmitResponse);
                     if (activationSubmitResponse != null) {
                         if (activationSubmitResponse.getStatus()) {
-                            Toast.makeText(BagsActivationSetupActivity.this, activationSubmitResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            Intent intent = new Intent(getApplicationContext(), BagsActivationScanningActivity.class);
+                            // Save activation flag
+                            String activationKey = "lot_activated_" + lot;
+                            SharedPreferences.getInstance(BagsActivationSetupActivityPrintRoll.this).storeObject(activationKey, "true");
+                            
+                            Toast.makeText(BagsActivationSetupActivityPrintRoll.this, activationSubmitResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(getApplicationContext(), PrintBagsLabelActivity.class);
                             intent.putExtra("lotNumber", lot);
+                            intent.putExtra("harvestdate", harvestDate);
+                            intent.putExtra("trid", activationSubmitResponse.getUser().getTrid());
+                            intent.putExtra("bagcount", bags);
                             startActivity(intent);
                         } else {
-                            Utils.showAlert(BagsActivationSetupActivity.this, activationSubmitResponse.getMsg());
-                            //Toast.makeText(BagsActivationSetupActivity.this, activationSubmitResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, activationSubmitResponse.getMsg());
+                            //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, activationSubmitResponse.getMsg(), Toast.LENGTH_SHORT).show();
                         }
                         progressDialog.cancel();
                     }
@@ -405,8 +418,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                         try {
                             JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
                             String msg = jsonObj.getString("msg");
-                            Utils.showAlert(BagsActivationSetupActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
+                            Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, msg);
+                            //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, msg, Toast.LENGTH_SHORT).show();
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -418,8 +431,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
             public void onFailure(@NonNull Call<ActivationSubmitResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
-                Utils.showAlert(BagsActivationSetupActivity.this,"RetrofitError : " + t.getMessage());
-                //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage());
+                //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -440,7 +453,7 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                     System.out.print("Response : " + lotInfoResponse);
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
-                            Toast.makeText(BagsActivationSetupActivity.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(BagsActivationSetupActivityPrintRoll.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
                             LotInfoData lotInfoData = lotInfoResponse.getData().get(0);
                             selectedCropName = lotInfoData.getCropname();
                             tvCrop.setText(lotInfoData.getCropname());
@@ -453,8 +466,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                             tvFarmerVillage.setText(lotInfoData.getProductionlocation());
                             getRemarksList();
                         } else {
-                            Utils.showAlert(BagsActivationSetupActivity.this, lotInfoResponse.getMsg());
-                            //Toast.makeText(BagsActivationSetupActivity.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, lotInfoResponse.getMsg());
+                            //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
                         }
                         progressDialog.cancel();
                     }
@@ -464,8 +477,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                         try {
                             JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
                             String msg = jsonObj.getString("msg");
-                            Utils.showAlert(BagsActivationSetupActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
+                            Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, msg);
+                            //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, msg, Toast.LENGTH_SHORT).show();
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -477,8 +490,8 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
             public void onFailure(@NonNull Call<LotInfoResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
-                Utils.showAlert(BagsActivationSetupActivity.this,"RetrofitError : " + t.getMessage());
-                //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage());
+                //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

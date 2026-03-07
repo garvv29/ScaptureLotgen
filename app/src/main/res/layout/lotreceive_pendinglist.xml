@@ -40,6 +40,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/edit_icon"
             app:tint="#374151"
+            android:visibility="visible"
             android:contentDescription="Edit"/>
 
         <!-- Lot title big -->

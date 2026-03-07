@@ -14,6 +14,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -75,6 +76,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -98,7 +100,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
     private Integer bagcount;
 
     private User userData;
-    private String action="";
+    private String action="add";
     private LotInfoData lotInfoData;
     private MaterialButton btnSubmit;
     private TextView tvCrop;
@@ -112,7 +114,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
     private static final int REQUEST_PERMISSION = 2;
     BluetoothSocket socket = null;
     private BluetoothAdapter bluetoothAdapter;
-    private String weightData, actualWeight;
+    private String weightData, actualWeight="0.000";
     private Handler handler = new Handler();
     private static final int MAX_RETRIES = 3;
     private int currentRetryCount = 0;
@@ -120,6 +122,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
     private static final int BT_PERMISSION_REQUEST = 101;
     private int trid,rowid;
     private TextView tvFarmerName, tvFarmerVillage;
+    private boolean labelPrinted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -154,8 +157,15 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                // Custom back press handling
-                Intent intent = new Intent(PrintBagsLabelActivity.this, LotReceiveListActivity.class);
+                // Custom back press handling based on source activity
+                String sourceActivity = getIntent().getStringExtra("sourceActivity");
+                Intent intent;
+
+                if ("ActivationPendingListActivity".equals(sourceActivity)) {
+                    intent = new Intent(PrintBagsLabelActivity.this, BagActivationPendingListActivity.class);
+                } else {
+                    intent = new Intent(PrintBagsLabelActivity.this, LotReceiveListActivity.class);
+                }
                 startActivity(intent);
                 finish();
             }
@@ -163,7 +173,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
         setTheme();
         init();
-
+        Utils.hideLogoutButton(this);
     }
 
     @SuppressLint("SetTextI18n")
@@ -215,7 +225,6 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         etBagCode.requestFocus();
         // Set the listener
         etBagCode.setOnEditorActionListener(this);
-
     }
 
     private void init(){
@@ -255,6 +264,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         }
 
         btnAdd.setOnClickListener(v -> {
+            //getWeighFromBlutooth();
             if(socket!=null){
                 if (socket.isConnected()){
                     getWeighFromBlutooth();
@@ -262,7 +272,6 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                     Toast.makeText(this, "Bluetooth not connected", Toast.LENGTH_SHORT).show();
                 }
             }
-
         });
 
         bt_con.setOnClickListener(new View.OnClickListener() {
@@ -283,8 +292,79 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         btnSubmit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(PrintBagsLabelActivity.this, LotReceiveListActivity.class);
-                startActivity(intent);
+                /*Intent intent = new Intent(PrintBagsLabelActivity.this, LotReceiveListActivity.class);
+                startActivity(intent);*/
+                if (barcodeList.isEmpty()){
+                    Utils.showAlert(PrintBagsLabelActivity.this, "Please add bags");
+                    //Toast.makeText(BagsActivationScanningActivity.this, "Please add bags", Toast.LENGTH_SHORT).show();
+                }/*else if (barcodeList.size()>lotInfoData.getBags()){
+                    Utils.showAlert(BagsActivationScanningActivity.this, "Scanned bags are not matched with setup bags. If you want to continue with this bags, then edit setup bags and try to submit again");
+                }else*/{
+                    final Dialog dialog = new Dialog(PrintBagsLabelActivity.this);
+                    dialog.setContentView(R.layout.submit_confirm_alert);
+                    Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+
+                    Button btnCancel = dialog.findViewById(R.id.btnCancel);
+                    Button btnSubmit = dialog.findViewById(R.id.btnSubmit);
+
+                    btnCancel.setOnClickListener(view -> dialog.cancel());
+
+                    btnSubmit.setOnClickListener(v1 -> {
+                        finalSubmit();
+                    });
+                    dialog.show();
+                }
+            }
+        });
+    }
+
+    private void finalSubmit() {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+        Log.e("Params:", userData.getScode()+"="+lotInfoData.getTrid());
+        Call<SubmitSuccessResponse> call =apiInterface.actSetupFinalSubmit(userData.getScode(), lotInfoData.getTrid().toString());
+        call.enqueue(new Callback<>() {
+            @SuppressLint({"NotifyDataSetChanged", "SetTextI18n"})
+            @Override
+            public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
+                if (response.isSuccessful()) {
+                    SubmitSuccessResponse submitSuccessResponse = response.body();
+                    System.out.print("Response : " + submitSuccessResponse);
+                    if (submitSuccessResponse != null) {
+                        if (submitSuccessResponse.getStatus()) {
+                            Toast.makeText(PrintBagsLabelActivity.this, submitSuccessResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(PrintBagsLabelActivity.this, MainActivity.class);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            Utils.showAlert(PrintBagsLabelActivity.this, submitSuccessResponse.getMsg());
+                            //Toast.makeText(BagsActivationScanningActivity.this, submitSuccessResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                        }
+                        progressDialog.cancel();
+                    }
+                } else {
+                    progressDialog.cancel();
+                    if (response.errorBody() != null) {
+                        try {
+                            JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
+                            String msg = jsonObj.getString("msg");
+                            Utils.showAlert(PrintBagsLabelActivity.this, msg);
+                            //Toast.makeText(BagsActivationScanningActivity.this, msg, Toast.LENGTH_SHORT).show();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Log.e("Error", "RetrofitError : " + t.getMessage());
+                Utils.showAlert(PrintBagsLabelActivity.this, "RetrofitError : " + t.getMessage());
+                //Toast.makeText(BagsActivationScanningActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -297,7 +377,17 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
             // For example, you can perform validation or submit the form
             if (!etBagCode.getText().toString().isEmpty()) {
                 String bagCode = etBagCode.getText().toString().trim();
-                storeBagCode(bagCode, actualWeight);
+                // If a label was just printed, this scan confirms the label
+                if (labelPrinted) {
+                    labelPrinted = false;
+                    //updateButtonState();
+                    storeBagCode(bagCode, actualWeight);
+                    //Toast.makeText(this, "Label scanned successfully!", Toast.LENGTH_SHORT).show();
+                    etBagCode.setText("");
+                } else {
+                    storeBagCode(bagCode, actualWeight);
+                    etBagCode.setText("");
+                }
             }
             return true;// Consume the event
         }
@@ -338,18 +428,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
             // Check if the dialog is showing and the TextView is available
             if (dialog != null && dialog.isShowing() && tv_weight != null) {
                 // Update the text inside the dialog's TextView
-                if (weightData != null && !tv_weight.getText().toString().equals(weightData)){
-                    runOnUiThread(new Runnable() {
-                        @SuppressLint({"DefaultLocal", "DefaultLocale"})
-                        @Override
-                        public void run() {
-                            //Your UI code here
-                            String[] actualWt = weightData.split(" ");
-                            actualWeight = String.format("%.3f", Double.parseDouble(actualWt[0]));
-                            tv_weight.setText(String.format("%.3f", Double.parseDouble(actualWt[0])));
-                        }
-                    });
-                }
+                if (weightData != null && !tv_weight.getText().toString().equals(weightData)){/* Lines 357-367 omitted */}
             }
             // Repeat this runnable code block every 1 second
             handler.postDelayed(this, 1000); // 1000ms = 1 second
@@ -645,6 +724,12 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                             DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(rvBags.getContext(), DividerItemDecoration.VERTICAL);
                             rvBags.addItemDecoration(dividerItemDecoration);
                             bagsAdapter.notifyDataSetChanged();
+
+                            // Set click listener for reprint functionality
+                            bagsAdapter.setOnItemClickListener((datum, position) -> showReprintDialog(datum, position + 1));
+
+                            // Update button state based on label printing and bag count
+                            updateButtonState();
                         } else {
                             Utils.showAlert(PrintBagsLabelActivity.this, labelPrintingBarList.getMsg());
                             //Toast.makeText(BagsActivationScanningActivity.this, actBarcodeListResponse.getMsg(), Toast.LENGTH_SHORT).show();
@@ -701,18 +786,16 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
         dialog.setCanceledOnTouchOutside(false);
 
-        /*if(socket!=null){
-            if (socket.isConnected()){
-                tv_message.setVisibility(View.GONE);
-            }else {
-                tv_message.setVisibility(View.VISIBLE);
-            }
-        }else{
+        // Get weight from Bluetooth
+        if (weightData != null && !weightData.isEmpty()) {
+            String[] actualWt = weightData.split(" ");
+            actualWeight = String.format("%.3f", Double.parseDouble(actualWt[0]));
+            tv_weight.setText(actualWeight);
+            tv_message.setVisibility(View.GONE);
+        } else {
             tv_message.setVisibility(View.VISIBLE);
-        }*/
-        String[] actualWt = weightData.split(" ");
-        actualWeight = String.format("%.3f", Double.parseDouble(actualWt[0]));
-        tv_weight.setText(actualWeight);
+            tv_message.setText("Waiting for weight data...");
+        }
 
         tv_cropName.setText(lotInfoData.getCropname());
         tv_varietyName.setText(lotInfoData.getSpcodef()+"\n"+lotInfoData.getSpcodem());
@@ -738,30 +821,40 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
             @SuppressLint({"NotifyDataSetChanged", "SetTextI18n"})
             @Override
             public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
+                progressDialog.cancel();
+                Log.e("StoreBagCode", "Response Code: " + response.code() + " | isSuccessful: " + response.isSuccessful());
+                Log.e("StoreBagCode", "Response Code: " + response.code());
+                Log.e("StoreBagCode", "Raw Body: " + response.raw());
                 if (response.isSuccessful()) {
                     SubmitSuccessResponse submitSuccessResponse = response.body();
-                    System.out.print("Response : " + submitSuccessResponse);
+                    Log.e("StoreBagCode", "Response Body: " + submitSuccessResponse);
+
                     if (submitSuccessResponse != null) {
+                        Log.e("StoreBagCode", "Status: " + submitSuccessResponse.getStatus() + " | Msg: " + submitSuccessResponse.getMsg());
+
                         if (submitSuccessResponse.getStatus()) {
                             Toast.makeText(PrintBagsLabelActivity.this, submitSuccessResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            etBagCode.setText("");
+                            //etBagCode.setText("");
+                            updateButtonState();
                             getActBarcodeList(lotInfoData.getLotno());
                         } else {
                             Utils.showAlert(PrintBagsLabelActivity.this, submitSuccessResponse.getMsg());
-                            //Toast.makeText(BagsActivationScanningActivity.this, submitSuccessResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Log.e("StoreBagCode", "Status is FALSE: " + submitSuccessResponse.getMsg());
                         }
-                        progressDialog.cancel();
+                    } else {
+                        Log.e("StoreBagCode", "Response body is NULL!");
+                        Utils.showAlert(PrintBagsLabelActivity.this, "Response body is null");
                     }
                 } else {
-                    progressDialog.cancel();
+                    Log.e("StoreBagCode", "Response NOT successful!");
                     if (response.errorBody() != null) {
                         try {
                             JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
                             String msg = jsonObj.getString("msg");
-
+                            Log.e("StoreBagCode", "Error Body: " + msg);
                             Utils.showAlert(PrintBagsLabelActivity.this, msg);
-                            //Toast.makeText(BagsActivationScanningActivity.this, msg, Toast.LENGTH_SHORT).show();
                         } catch (JSONException e) {
+                            Log.e("StoreBagCode", "JSONException: " + e.getMessage());
                             e.printStackTrace();
                         }
                     }
@@ -772,6 +865,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
             public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
+                Log.e("StoreBagCode", "Throwable Full: ", t);
                 Utils.showAlert(PrintBagsLabelActivity.this, "RetrofitError : " + t.getMessage());
                 //Toast.makeText(BagsActivationScanningActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -802,6 +896,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                                     weight,
                                     qrcodeData.get(0).getHarvestdate(),
                                     qrcodeData.get(0).getLotno(),
+                                    qrcodeData.get(0).getNob(),
                                     qrcodeData.get(0).getQrcode()
                             );
 
@@ -840,40 +935,39 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
     private void printTSCLabelWifi(LabelData data) {
 
-        String printerIp = "172.168.4.11";
+        String printerIp = "192.168.5.59";
         int port = 9100;
 
         String tspl = String.format(
-                "SIZE 50 mm,210 mm\n" +
+                "SIZE 50 mm,330 mm\n" +
                         "GAP 0,0\n" +
                         "DIRECTION 1\n" +
                         "CLS\n" +
                         "SPEED 3\n" +
                         "DENSITY 15\n" +
-                        "SETENERGY 15\n" +
+                        "SETENERGY 11\n" +
 
-                        "TEXT 0,124,\"3\",0,1,1,\"------------X------------\"\n" +
+                        "TEXT 90,124,\"3\",0,1,1,\"------------X------------\"\n" +
 
-                        "TEXT 130,150,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 75,210,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 75,270,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 70,330,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 20,390,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 75,450,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 75,510,\"3\",0,2,2,\"%s\"\n" +
-                        "QRCODE 80,560,L,9,A,0,M2,S7,\"%s\"\n" +
+                        "TEXT 240,180,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 160,270,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 160,360,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 40,450,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 140,540,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 190,630,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 170,720,\"3\",0,3,3,\"%s\"\n" +
+                        "QRCODE 150,810,L,13,A,0,M2,S7,\"%s\"\n" +
 
-                        "TEXT 40,1300,\"3\",0,1,1,\"------------------------------\"\n" +
+                        "TEXT 40,1950,\"3\",0,1,1,\"------------------------------\"\n" +
 
-                        "TEXT 130,1800,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 75,1860,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 75,1920,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 70,1980,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 20,2040,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 75,2100,\"3\",0,2,2,\"%s\"\n" +
-                        "TEXT 75,2160,\"3\",0,2,2,\"%s\"\n" +
-                        "QRCODE 80,2220,L,9,A,0,M2,S7,\"%s\"\n" +
-
+                        "TEXT 240,2920,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 160,3010,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 160,3100,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 40,3190,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 140,3280,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 190,3370,\"3\",0,3,3,\"%s\"\n" +
+                        "TEXT 170,3460,\"3\",0,3,3,\"%s\"\n" +
+                        "QRCODE 150,3550,L,13,A,0,M2,S7,\"%s\"\n" +
                         "PRINT 1,1\n",
 
                 // -------- First Label --------
@@ -882,6 +976,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 data.variety2,
                 data.date,
                 data.lotNo,
+                data.Nob,
                 data.weight,
                 data.qrcode,
 
@@ -891,6 +986,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 data.variety2,
                 data.date,
                 data.lotNo,
+                data.Nob,
                 data.weight,
                 data.qrcode
         );
@@ -907,17 +1003,92 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 outputStream.write(tspl.getBytes("UTF-8"));
                 outputStream.flush();
 
-                runOnUiThread(() ->
-                        Toast.makeText(this, "Label Printed!", Toast.LENGTH_LONG).show()
-                );
-                getActBarcodeList(lotnumber);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Label Printed! Please scan the printed label to continue.", Toast.LENGTH_LONG).show();
+                    labelPrinted = true;
+                    updateButtonState();
+                    getActBarcodeList(lotnumber);
+                    etBagCode.requestFocus();
+                });
 
             } catch (Exception e) {
                 runOnUiThread(() ->
                         Toast.makeText(this, "Print Failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
                 );
+                Log.e("PrintError","Error"+e.getMessage());
             }
         }).start();
+    }
+
+    private void updateButtonState() {
+        if (labelPrinted) {
+            // Disable print button if a label has been printed but not scanned
+            btnAdd.setEnabled(false);
+            btnAdd.setAlpha(0.5f);
+        } else if (barcodeList.size() >= lotInfoData.getBags()) {
+            // Disable if all bags are printed
+            btnAdd.setEnabled(false);
+            btnAdd.setAlpha(0.5f);
+        } else {
+            // Enable if there are more bags to print
+            btnAdd.setEnabled(true);
+            btnAdd.setAlpha(1.0f);
+        }
+    }
+
+    @SuppressLint({"SetTextI18n", "DefaultLocale"})
+    private void showReprintDialog(Datum datum, int nob) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(PrintBagsLabelActivity.this);
+        builder.setTitle("Reprint Label - Bag #" + nob);
+
+        StringBuilder details = new StringBuilder();
+        details.append("Crop: ").append(lotInfoData.getCropname()).append("\n");
+        details.append("Variety 1: ").append(lotInfoData.getSpcodef()).append("\n");
+        details.append("Variety 2: ").append(lotInfoData.getSpcodem()).append("\n");
+        details.append("Harvest Date: ").append(lotInfoData.getHarvestdate()).append("\n");
+        details.append("Lot No: ").append(lotInfoData.getLotno()).append("\n");
+        details.append("Bag No: ").append(nob).append("\n");
+        details.append("Weight: ").append(String.format("%.3f", Double.parseDouble(datum.getWeight()))).append("\n");
+        details.append("QR Code: ").append(datum.getQrcode()).append("\n");
+
+        builder.setMessage(details.toString());
+
+        builder.setPositiveButton("Reprint", (dialog, which) -> {
+            reprintLabel(datum, nob);
+            dialog.dismiss();
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+
+        builder.show();
+    }
+
+    @SuppressLint("DefaultLocale")
+    private void reprintLabel(Datum datum, int nob) {
+        try {
+            String weight = String.format("%.3f", Double.parseDouble(datum.getWeight()));
+            // Get first 2 letters of crop name in capital
+            String cropNameShort = lotInfoData.getCropname().substring(0, Math.min(2, lotInfoData.getCropname().length())).toUpperCase();
+            // Format Nob as "position/total bags"
+            String nobFormatted = nob + "/" + lotInfoData.getBags();
+
+            LabelData labelData = new LabelData(
+                    lotInfoData.getCropcode(),
+                    lotInfoData.getSpcodef(),
+                    lotInfoData.getSpcodem(),
+                    weight,
+                    lotInfoData.getHarvestdate(),
+                    lotInfoData.getLotno(),
+                    nobFormatted,
+                    datum.getQrcode()
+            );
+
+            printTSCLabelWifi(labelData);
+            Toast.makeText(this, "Reprinting label for bag #" + nob, Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e("ReprintError", "Error reprinting label: " + e.getMessage());
+            Toast.makeText(this, "Error reprinting label: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
 }

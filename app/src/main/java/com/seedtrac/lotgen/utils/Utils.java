@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.seedtrac.lotgen.R;
@@ -80,5 +81,21 @@ public class Utils {
         });
 
         dialog.show();
+    }
+
+    /**
+     * Hide the logout button from the toolbar
+     * Call this in all activities except MainActivity
+     */
+    public static void hideLogoutButton(Context context) {
+        try {
+            View decorView = ((android.app.Activity) context).getWindow().getDecorView();
+            ImageView btnLogout = decorView.findViewById(R.id.btnLogout);
+            if (btnLogout != null) {
+                btnLogout.setVisibility(View.GONE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

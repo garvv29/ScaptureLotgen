@@ -113,6 +113,7 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
 
         setTheme();
         init();
+        Utils.hideLogoutButton(this);
 
     }
 
@@ -233,9 +234,20 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
         return false;// Return false if you didn't handle the event
     }
 
+    private String getLotValue(){
+        if (til_ddLot.getVisibility() == View.VISIBLE) {
+            return actLotNumber.getText().toString().trim();
+        } else {
+            return etLotNumber.getText().toString().trim();
+        }
+    }
+
     private void validateAndSubmit() {
-        String lot = actLotNumber.getText().toString().trim();
-        //String lot = etLotNumber.getText().toString().trim();
+//        String lot = actLotNumber.getText().toString().trim();
+//
+//         String lot = etLotNumber.getText().toString().trim();
+        String lot = getLotValue();
+
         String harvestDate = etHarvestDate.getText().toString().trim();
         String bags = etNumberOfBags.getText().toString().trim();
         if (rbPreprintedTags.isChecked()){
@@ -251,10 +263,27 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
         text.setText("Check the data entered before submission, once submitted it cannot be edited.\nAre you sure you want to submit?");*/
         dialog.findViewById(R.id.btnSubmit).setOnClickListener(v -> {
             dialog.dismiss();
+
+//            if (lot.isEmpty() || harvestDate.isEmpty() || bags.isEmpty() || lot.length()!=6 || whId==0 || binId==0){
+//                Utils.showAlert(LotReceiveActivity.this, "Please fill all the fields");
+//                return;
+//            }
             if (lot.isEmpty() || harvestDate.isEmpty() || bags.isEmpty() || lot.length()!=6 || whId==0 || binId==0){
-                Utils.showAlert(LotReceiveActivity.this, "Please fill all the fields");
+
+                String message =
+                        "Please fill all fields\n\n" +
+                                "Lot : " + lot + "\n" +
+                                "Harvest Date : " + harvestDate + "\n" +
+                                "Bags : " + bags + "\n" +
+                                "Lot Length : " + lot.length() + "\n" +
+                                "WH ID : " + whId + "\n" +
+                                "BIN ID : " + binId + "\n" +
+                                "Tag Type : " + tagType;
+
+                Utils.showAlert(LotReceiveActivity.this, message);
                 return;
             }
+
             if (trid>0){
                 updateLot(lot, harvestDate, bags, tagType);
             }else {
@@ -273,7 +302,7 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
         progressDialog.setMessage("Loading...");
         progressDialog.show();
         Log.e("Params:", userData.getMobile1()+"="+userData.getScode()+"="+lot+"="+harvestDate+"="+bags+"="+whId+"="+binId+"="+trid);
-        Call<LotRecSubmitSuccess> call =apiInterface.updateReceiveForm(userData.getMobile1(), userData.getScode(), lot, harvestDate, bags, String.valueOf(trid),whId.toString(), binId.toString(), rowid);
+        Call<LotRecSubmitSuccess> call =apiInterface.updateReceiveForm(userData.getMobile1(), userData.getScode(), lot, harvestDate, bags, String.valueOf(trid),whId.toString(), binId.toString(), rowid, tagType);
         call.enqueue(new Callback<>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -283,24 +312,19 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                     System.out.print("Response : " + lotRecSubmitSuccess);
                     if (lotRecSubmitSuccess != null) {
                         if (lotRecSubmitSuccess.getStatus()) {
-                            if (tagType.equalsIgnoreCase("Roll")){
+                            Log.e("TagType Check", "updateLot - tagType: " + tagType);
+                            if (tagType != null && tagType.equalsIgnoreCase("Roll")){
                                 Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
-                                Intent intent = new Intent(LotReceiveActivity.this, PrintBagsLabelActivity.class);
+                                Intent intent = new Intent(LotReceiveActivity.this, BagsActivationSetupActivityPrintRoll.class);
                                 intent.putExtra("lotNumber", lot);
-                                intent.putExtra("harvestdate", harvestDate);
-                                intent.putExtra("bagcount", bags);
-                                intent.putExtra("whname", whname);
-                                intent.putExtra("binname", binname);
-                                intent.putExtra("trid", "");
-                                intent.putExtra("whid", whId);
-                                intent.putExtra("binid", binId);
-                                intent.putExtra("rowid", "0");
-                                intent.putExtra("tagType", tagType);
+                                intent.putExtra("sourceActivity", "LotReceiveActivity");
                                 startActivity(intent);
+                                finish();
                             }else {
                                 Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(LotReceiveActivity.this, LotReceiveListActivity.class);
                                 startActivity(intent);
+                                finish();
                             }
                         } else {
                             Utils.showAlert(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg());
@@ -349,25 +373,18 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                     System.out.print("Response : " + lotRecSubmitSuccess);
                     if (lotRecSubmitSuccess != null) {
                         if (lotRecSubmitSuccess.getStatus()) {
+                            Log.e("TagType Check", "submitForm - tagType: " + tagType);
                             Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
-                            if (tagType.equalsIgnoreCase("Roll")){
-                                Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
-                                Intent intent = new Intent(LotReceiveActivity.this, PrintBagsLabelActivity.class);
+                            if (tagType != null && tagType.equalsIgnoreCase("Roll")){
+                                Intent intent = new Intent(LotReceiveActivity.this, BagsActivationSetupActivityPrintRoll.class);
                                 intent.putExtra("lotNumber", lot);
-                                intent.putExtra("harvestdate", harvestDate);
-                                intent.putExtra("bagcount", bags);
-                                intent.putExtra("whname", whname);
-                                intent.putExtra("binname", binname);
-                                intent.putExtra("trid", "");
-                                intent.putExtra("whid", whId);
-                                intent.putExtra("binid", binId);
-                                intent.putExtra("rowid", "0");
-                                intent.putExtra("tagType", tagType);
+                                intent.putExtra("sourceActivity", "LotReceiveActivity");
                                 startActivity(intent);
+                                finish();
                             }else {
-                                Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(LotReceiveActivity.this, LotReceiveListActivity.class);
                                 startActivity(intent);
+                                finish();
                             }
                         } else {
                             Utils.showAlert(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg());

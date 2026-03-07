@@ -52,6 +52,9 @@ public class LotInfoData {
     @SerializedName("cropname")
     @Expose
     private String cropname;
+    @SerializedName("cropcode")
+    @Expose
+    private String cropcode;
     @SerializedName("agmt_no")
     @Expose
     private String agmtNo;
@@ -188,6 +191,14 @@ public class LotInfoData {
 
     public void setCropname(String cropname) {
         this.cropname = cropname;
+    }
+
+    public String getCropcode() {
+        return cropcode;
+    }
+
+    public void setCropcode(String cropcode) {
+        this.cropcode = cropcode;
     }
 
     public String getAgmtNo() {

@@ -13,6 +13,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -100,8 +101,8 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
     private static final int REQUEST_PERMISSION = 2;
     BluetoothSocket socket = null;
     private BluetoothAdapter bluetoothAdapter;
-    private String weightData, actualWeight;
-    private Handler handler = new Handler();
+    private String weightData="0.000 kg", actualWeight;
+    private Handler handler = new Handler(Looper.getMainLooper());
     private static final int MAX_RETRIES = 3;
     private int currentRetryCount = 0;
     private Set<BluetoothDevice> pairedDevices;
@@ -149,6 +150,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
 
         setTheme();
         init();
+        Utils.hideLogoutButton(this);
     }
 
     @SuppressLint("SetTextI18n")
@@ -190,14 +192,14 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
         DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(rvBags.getContext(), DividerItemDecoration.VERTICAL);
         rvBags.addItemDecoration(dividerItemDecoration);
 
-        userData = (User) com.seedtrac.lotgen.sessionmanager.SharedPreferences.getInstance(this).getObject(SharedPreferences.KEY_LOGIN_OBJ, User.class);
+        userData = (User) SharedPreferences.getInstance(this).getObject(SharedPreferences.KEY_LOGIN_OBJ, User.class);
     }
 
     @SuppressLint({"NotifyDataSetChanged", "DefaultLocale"})
     private void init(){
         getLotInfo();
         btnAdd.setOnClickListener(v -> {
-            if (socket!=null && socket.isConnected()){
+            //if (socket!=null && socket.isConnected()){
                 String bagCode = etBagCode.getText().toString().trim();
                 action = "add";
                 if (!bagCode.isEmpty()) {
@@ -238,9 +240,9 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 } else {
                     startScanner();
                 }
-            }else {
+            /*}else {
                 Utils.showAlert(BagsActivationScanningActivity.this,"Bluetooth not connected...");
-            }
+            }*/
 
         });
 
@@ -619,7 +621,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 if (result.getContents() != null) {
                     //Toast.makeText(this, "Scanned: " + result.getContents(), Toast.LENGTH_SHORT).show();
                     if (result.getContents().length()==8 || result.getContents().length()==11){
-                        if (action.equalsIgnoreCase("Add")){
+                        if (action.equalsIgnoreCase("add")){
                             Dialog dialog = new Dialog(BagsActivationScanningActivity.this);
                             dialog.setContentView(R.layout.getweight_popup);
                             Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));

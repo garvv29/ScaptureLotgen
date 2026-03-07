@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.seedtrac.lotgen.R;
 import com.seedtrac.lotgen.activity.BagsActivationScanningActivity;
+import com.seedtrac.lotgen.activity.PrintBagsLabelActivity;
 import com.seedtrac.lotgen.parser.activationtrlist.Data;
 
 import java.util.List;
@@ -34,15 +35,15 @@ public class ActivationPendingListAdapter extends RecyclerView.Adapter<Activatio
 
     @NonNull
     @Override
-    public ActivationPendingListAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.activation_pending_list, parent, false);
-        return new ActivationPendingListAdapter.ViewHolder(view);
+        return new ViewHolder(view);
     }
 
     @SuppressLint("SetTextI18n")
     @Override
-    public void onBindViewHolder(@NonNull ActivationPendingListAdapter.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Data transaction = transactionList.get(position);
 
         holder.tvLotNo.setText(transaction.getLotno());
@@ -52,9 +53,19 @@ public class ActivationPendingListAdapter extends RecyclerView.Adapter<Activatio
         holder.tvDate.setText(transaction.getTrdate());
         //holder.tvStatus.setText("GOT: " + transaction.getGotStatus() + " | Moisture: " + transaction.getMoisture());
         holder.btnEdit.setOnClickListener(v -> {
-            Intent intent = new Intent(context, BagsActivationScanningActivity.class);
-            intent.putExtra("lotNumber", transaction.getLotno());
-            context.startActivity(intent);
+            // Check trantype and route accordingly
+            if (transaction.getTrantype() != null && transaction.getTrantype().equalsIgnoreCase("Roll")) {
+                // Roll type goes to PrintBagsLabelActivity
+                Intent intent = new Intent(context, PrintBagsLabelActivity.class);
+                intent.putExtra("lotNumber", transaction.getLotno());
+                intent.putExtra("sourceActivity", "ActivationPendingListActivity");
+                context.startActivity(intent);
+            } else {
+                // Other types go to BagsActivationScanningActivity
+                Intent intent = new Intent(context, BagsActivationScanningActivity.class);
+                intent.putExtra("lotNumber", transaction.getLotno());
+                context.startActivity(intent);
+            }
         });
     }
 

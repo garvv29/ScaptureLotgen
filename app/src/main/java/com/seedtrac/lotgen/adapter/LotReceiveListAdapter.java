@@ -14,7 +14,9 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.seedtrac.lotgen.R;
+import com.seedtrac.lotgen.sessionmanager.SharedPreferences;
 import com.seedtrac.lotgen.activity.BagsActivationScanningActivity;
+import com.seedtrac.lotgen.activity.BagsActivationSetupActivityPrintRoll;
 import com.seedtrac.lotgen.activity.LotReceiveActivity;
 import com.seedtrac.lotgen.activity.LotReceiveListActivity;
 import com.seedtrac.lotgen.activity.PrintBagsLabelActivity;
@@ -39,15 +41,15 @@ public class LotReceiveListAdapter extends RecyclerView.Adapter<LotReceiveListAd
 
     @NonNull
     @Override
-    public LotReceiveListAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.lotreceive_pendinglist, parent, false);
-        return new LotReceiveListAdapter.ViewHolder(view);
+        return new ViewHolder(view);
     }
 
     @SuppressLint("SetTextI18n")
     @Override
-    public void onBindViewHolder(@NonNull LotReceiveListAdapter.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Datum transaction = transactionList.get(position);
 
         holder.tvLotNo.setText(transaction.getLotno());
@@ -57,20 +59,31 @@ public class LotReceiveListAdapter extends RecyclerView.Adapter<LotReceiveListAd
         holder.tvSLOC.setText(transaction.getWhname()+"/"+transaction.getBinname());
         holder.btnEdit.setOnClickListener(v -> {
             if (transaction.getTrantype().equalsIgnoreCase("Roll")){
-                Intent intent = new Intent(context, PrintBagsLabelActivity.class);
-                intent.putExtra("lotNumber", transaction.getLotno());
-                intent.putExtra("harvestdate", transaction.getHarvestdate());
-                intent.putExtra("bagcount", transaction.getNob());
-                intent.putExtra("whname", transaction.getWhname());
-                intent.putExtra("binname", transaction.getBinname());
-                intent.putExtra("trid", transaction.getTrid());
-                intent.putExtra("whid", transaction.getWhid());
-                intent.putExtra("binid", transaction.getBinid());
-                intent.putExtra("rowid", transaction.getRowid());
-                intent.putExtra("tagType", transaction.getTrantype());
-                context.startActivity(intent);
+                // Check if this lot has already been activated
+                String activationKey = "lot_activated_" + transaction.getLotno();
+                Object activationStatus = SharedPreferences.getInstance(context).getObject(activationKey, String.class);
+                boolean isActivated = activationStatus != null && activationStatus.toString().equals("true");
+                
+                if (transaction.getActtrid()>0) {
+                    // Already activated, go directly to print
+                    Intent intent = new Intent(context, PrintBagsLabelActivity.class);
+                    intent.putExtra("lotNumber", transaction.getLotno());
+                    intent.putExtra("harvestdate", transaction.getHarvestdate());
+                    intent.putExtra("bagcount", transaction.getNob());
+                    intent.putExtra("trid", transaction.getActtrid());
+                    intent.putExtra("sourceActivity", "LotReceiveListActivity");
+                    context.startActivity(intent);
+                } else {
+                    // Not yet activated, go to setup form
+                    Intent intent = new Intent(context, BagsActivationSetupActivityPrintRoll.class);
+                    intent.putExtra("lotNumber", transaction.getLotno());
+                    intent.putExtra("harvestdate", transaction.getHarvestdate());
+                    intent.putExtra("bagcount", transaction.getNob());
+                    intent.putExtra("sourceActivity", "LotReceiveListActivity");
+                    context.startActivity(intent);
+                }
             }else {
-                Intent intent = new Intent(context, LotReceiveActivity.class);
+                /*Intent intent = new Intent(context, LotReceiveActivity.class);
                 intent.putExtra("lotNumber", transaction.getLotno());
                 intent.putExtra("harvestdate", transaction.getHarvestdate());
                 intent.putExtra("bagcount", transaction.getNob());
@@ -81,7 +94,7 @@ public class LotReceiveListAdapter extends RecyclerView.Adapter<LotReceiveListAd
                 intent.putExtra("binid", transaction.getBinid());
                 intent.putExtra("rowid", transaction.getRowid());
                 intent.putExtra("tagType", transaction.getTrantype());
-                context.startActivity(intent);
+                context.startActivity(intent);*/
             }
         });
     }

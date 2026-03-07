@@ -23,6 +23,8 @@
         android:roundIcon="@drawable/scapture_icon"
         android:supportsRtl="true"
         android:theme="@style/Theme.Lotgen">
+        <activity android:name=".activity.BagsActivationSetupActivityPrintRoll"
+            android:exported="false"/>
         <activity
             android:name=".activity.GsSLOCShiftingActivity"
             android:exported="false" />

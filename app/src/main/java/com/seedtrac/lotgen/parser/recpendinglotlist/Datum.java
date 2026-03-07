@@ -37,6 +37,9 @@ public class Datum {
     @SerializedName("trantype")
     @Expose
     private String trantype;
+    @SerializedName("acttrid")
+    @Expose
+    private Integer acttrid;
 
     public Integer getTrid() {
         return trid;
@@ -126,4 +129,11 @@ public class Datum {
         this.trantype = trantype;
     }
 
+    public Integer getActtrid() {
+        return acttrid;
+    }
+
+    public void setActtrid(Integer acttrid) {
+        this.acttrid = acttrid;
+    }
 }

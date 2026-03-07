@@ -22,6 +22,9 @@ public class Data {
     @SerializedName("Qty")
     @Expose
     private Double qty;
+    @SerializedName("trantype")
+    @Expose
+    private String trantype;
 
     public String getMobile1() {
         return mobile1;
@@ -69,5 +72,13 @@ public class Data {
 
     public void setQty(Double qty) {
         this.qty = qty;
+    }
+
+    public String getTrantype() {
+        return trantype;
+    }
+
+    public void setTrantype(String trantype) {
+        this.trantype = trantype;
     }
 }
