@@ -935,7 +935,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
     private void printTSCLabelWifi(LabelData data) {
 
-        String printerIp = "192.168.5.59";
+        String printerIp = "192.168.29.105";
         int port = 9100;
 
         String tspl = String.format(

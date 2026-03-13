@@ -108,11 +108,11 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         // Forgot Password click
-        tvForgotPassword.setOnClickListener(v ->{
+        /*tvForgotPassword.setOnClickListener(v ->{
                 Utils.showAlert(this,"Forgot Password Clicked");
                 //Toast.makeText(this, "Forgot Password Clicked", Toast.LENGTH_SHORT).show()
             }
-        );
+        );*/
     }
 
     private void checkLogin(String mobile, String password) {

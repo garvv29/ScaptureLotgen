@@ -18,10 +18,10 @@ public class User {
     private String name;
     @SerializedName("pendingactivate")
     @Expose
-    private Integer pendingactivate;
+    private String pendingactivate;
     @SerializedName("pendingloading")
     @Expose
-    private Integer pendingloading;
+    private String pendingloading;
 
     public String getMobile1() {
         return mobile1;
@@ -55,19 +55,19 @@ public class User {
         this.name = name;
     }
 
-    public Integer getPendingactivate() {
+    public String getPendingactivate() {
         return pendingactivate;
     }
 
-    public void setPendingactivate(Integer pendingactivate) {
+    public void setPendingactivate(String pendingactivate) {
         this.pendingactivate = pendingactivate;
     }
 
-    public Integer getPendingloading() {
+    public String getPendingloading() {
         return pendingloading;
     }
 
-    public void setPendingloading(Integer pendingloading) {
+    public void setPendingloading(String pendingloading) {
         this.pendingloading = pendingloading;
     }
 }

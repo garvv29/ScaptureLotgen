@@ -70,6 +70,8 @@
                     android:completionThreshold="1"
                     android:dropDownHeight="wrap_content"
                     android:dropDownVerticalOffset="8dp"
+                    android:enabled="false"
+                    android:clickable="false"
                     android:dropDownHorizontalOffset="0dp"
                     android:padding="8dp" />
             </com.google.android.material.textfield.TextInputLayout>

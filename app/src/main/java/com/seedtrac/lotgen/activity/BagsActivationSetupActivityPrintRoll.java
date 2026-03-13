@@ -67,6 +67,7 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
     private TextView tvFarmerName, tvFarmerVillage;
     private String selProdGrade="";
     private String selectedCropName="";
+    private String lotNumber;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,6 +134,9 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
         tvToolbarTitle.setText("Bags Activation Setup");
 
         userData = (User) SharedPreferences.getInstance(this).getObject(SharedPreferences.KEY_LOGIN_OBJ, User.class);
+        lotNumber = getIntent().getStringExtra("lotNumber");
+        actLotNumber.setText(lotNumber);
+        getLotInfo(lotNumber);
     }
 
     private void setupStatusBar() {
@@ -166,7 +170,7 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
         actProdGrade.setAdapter(remarksAdapter);
         actProdGrade.setOnClickListener(v -> actProdGrade.showDropDown());
 
-        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        /*ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
@@ -216,7 +220,7 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
                 Utils.showAlert(BagsActivationSetupActivityPrintRoll.this,"RetrofitError : " + t.getMessage());
                 //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
-        });
+        });*/
     }
 
     private void getRemarksList() {
@@ -278,11 +282,11 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
         // Submit button listener
         btnSubmit.setOnClickListener(v -> validateAndSubmit());
 
-        actLotNumber.setOnItemClickListener((parent, view, position, id) -> {
+        /*actLotNumber.setOnItemClickListener((parent, view, position, id) -> {
             String selectedItem = parent.getItemAtPosition(position).toString();
             //Toast.makeText(this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
             getLotInfo(selectedItem);
-        });
+        });*/
 
         actRemarks.setOnItemClickListener((parent, view, position, id) -> {
             String selectedItem = parent.getItemAtPosition(position).toString();
