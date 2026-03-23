@@ -144,9 +144,12 @@
                                 android:id="@+id/dd_wh_popup"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:minHeight="50dp"
                                 android:hint="WH"
                                 android:inputType="text"
-                                android:textColor="@color/textdata_color" />
+                                android:textColor="@color/textdata_color"
+                                android:textSize="16sp"
+                                android:padding="12dp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <!-- GS BIN Dropdown -->
@@ -161,9 +164,12 @@
                                 android:id="@+id/dd_bin_popup"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:minHeight="50dp"
                                 android:hint="GS Bin"
                                 android:inputType="text"
-                                android:textColor="@color/textdata_color" />
+                                android:textColor="@color/textdata_color"
+                                android:textSize="16sp"
+                                android:padding="12dp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                     </LinearLayout>
