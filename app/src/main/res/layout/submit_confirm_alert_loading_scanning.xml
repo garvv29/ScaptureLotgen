@@ -38,6 +38,42 @@
                 android:textSize="16dp"
                 android:textColor="@color/textdata_color" />
 
+            <!-- Question for Vehicle Pickup -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Will Vehicle go to other locations for Seed Pickup?"
+                android:padding="10dp"
+                android:paddingBottom="6dp"
+                android:textSize="14sp"
+                android:textColor="@color/textdata_color"
+                android:textStyle="bold" />
+
+            <!-- Radio Group -->
+            <RadioGroup
+                android:id="@+id/rgVehiclePickup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingBottom="12dp">
+
+                <RadioButton
+                    android:id="@+id/rbNo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No"
+                    android:checked="true"
+                    android:layout_marginEnd="24dp" />
+
+                <RadioButton
+                    android:id="@+id/rbYes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Yes" />
+
+            </RadioGroup>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -71,8 +107,6 @@
                     android:backgroundTint="#0B60E6" />
 
             </LinearLayout>
-
-
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>

@@ -83,7 +83,7 @@ public class LotReceiveListAdapter extends RecyclerView.Adapter<LotReceiveListAd
                     context.startActivity(intent);
                 }
             }else {
-                /*Intent intent = new Intent(context, LotReceiveActivity.class);
+                Intent intent = new Intent(context, LotReceiveActivity.class);
                 intent.putExtra("lotNumber", transaction.getLotno());
                 intent.putExtra("harvestdate", transaction.getHarvestdate());
                 intent.putExtra("bagcount", transaction.getNob());
@@ -94,7 +94,7 @@ public class LotReceiveListAdapter extends RecyclerView.Adapter<LotReceiveListAd
                 intent.putExtra("binid", transaction.getBinid());
                 intent.putExtra("rowid", transaction.getRowid());
                 intent.putExtra("tagType", transaction.getTrantype());
-                context.startActivity(intent);*/
+                context.startActivity(intent);
             }
         });
     }

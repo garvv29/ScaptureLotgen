@@ -4,13 +4,16 @@ import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.inputmethod.InputMethodManager;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -51,8 +54,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
-    AutoCompleteTextView actLotNumber,actProdGrade,actRemarks;
+    AutoCompleteTextView actLotNumber,actProdGrade;
     EditText etHarvestDate, etNumberOfBags, etTotalWeight, etTareWeight, etRemarks, etMoisture;
+    AutoCompleteTextView actRemarks;
     TextInputLayout til_remarks;
     RadioGroup rgGOT, rgMoisture;
     Button btnSubmit;
@@ -68,6 +72,8 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
     private String selProdGrade="";
     private String selectedCropName="";
     private String lotNumber;
+    private List<String> remarksList = new ArrayList<>();
+    private List<String> selectedRemarks = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,8 +99,8 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
                 String sourceActivity = getIntent().getStringExtra("sourceActivity");
                 Intent intent;
                 
-                if ("LotReceiveActivity".equals(sourceActivity)) {
-                    intent = new Intent(BagsActivationSetupActivityPrintRoll.this, LotReceiveActivity.class);
+                if ("PrintBagsLabelActivity".equals(sourceActivity)) {
+                    intent = new Intent(BagsActivationSetupActivityPrintRoll.this, PrintBagsLabelActivity.class);
                 } else {
                     intent = new Intent(BagsActivationSetupActivityPrintRoll.this, BagActivationPendingListActivity.class);
                 }
@@ -135,8 +141,15 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
 
         userData = (User) SharedPreferences.getInstance(this).getObject(SharedPreferences.KEY_LOGIN_OBJ, User.class);
         lotNumber = getIntent().getStringExtra("lotNumber");
-        actLotNumber.setText(lotNumber);
-        getLotInfo(lotNumber);
+        
+        // ✅ FIX: Add null validation before using lotNumber
+        if (lotNumber != null && !lotNumber.isEmpty()) {
+            actLotNumber.setText(lotNumber);
+            getLotInfo(lotNumber);
+        } else {
+            Log.e("BagsActivationSetupActivityPrintRoll", "lotNumber is null or empty");
+            Utils.showAlert(this, "Error: Lot number not provided");
+        }
     }
 
     private void setupStatusBar() {
@@ -191,7 +204,6 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
                             actLotNumber.setAdapter(adapter);
                             // Show dropdown on click (even without typing)
                             actLotNumber.setOnClickListener(v -> actLotNumber.showDropDown());
-                            getRemarksList();
                         } else {
                             Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, actLotListResponse.getMsg());
                             //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
@@ -240,10 +252,8 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
                     System.out.print("Response : " + actRemarksListResponse);
                     if (actRemarksListResponse != null) {
                         if (actRemarksListResponse.getStatus()) {
-                            List<String> remarkList = actRemarksListResponse.getData();
-                            ArrayAdapter<String> remarksAdapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_dropdown_item_1line, remarkList);
-                            actRemarks.setAdapter(remarksAdapter);
-                            actRemarks.setOnClickListener(v -> actRemarks.showDropDown());
+                            remarksList = actRemarksListResponse.getData();
+                            setupMultiSelectRemarks();
                         } else {
                             Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, actRemarksListResponse.getMsg());
                             //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
@@ -275,6 +285,58 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
         });
     }
 
+    private void setupMultiSelectRemarks() {
+        Log.e("SetupRemarks", "Setting up multi-select remarks. RemarksList size: " + (remarksList != null ? remarksList.size() : 0));
+        // Click listener to show dialog and hide keyboard
+        actRemarks.setOnClickListener(v -> {
+            Log.e("RemarksClick", "Remarks field clicked!");
+            // Show dialog
+            showMultiSelectRemarksDialog();
+        });
+    }
+
+    private void showMultiSelectRemarksDialog() {
+        if (remarksList == null || remarksList.isEmpty()) {
+            Utils.showAlert(this, "No remarks available");
+            return;
+        }
+        
+        CharSequence[] items = remarksList.toArray(new CharSequence[0]);
+        boolean[] checkedItems = new boolean[remarksList.size()];
+        
+        // Mark already selected items
+        for (int i = 0; i < remarksList.size(); i++) {
+            checkedItems[i] = selectedRemarks.contains(remarksList.get(i));
+        }
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select Remarks")
+                .setMultiChoiceItems(items, checkedItems, (dialog, which, isChecked) -> {
+                    if (isChecked) {
+                        if (!selectedRemarks.contains(remarksList.get(which))) {
+                            selectedRemarks.add(remarksList.get(which));
+                        }
+                    } else {
+                        selectedRemarks.remove(remarksList.get(which));
+                    }
+                })
+                .setPositiveButton("OK", (dialog, id) -> {
+                    updateRemarksDisplay();
+                    dialog.dismiss();
+                })
+                .setNegativeButton("Cancel", (dialog, id) -> dialog.dismiss());
+        
+        builder.show();
+    }
+
+    private void updateRemarksDisplay() {
+        if (selectedRemarks.isEmpty()) {
+            actRemarks.setText("");
+        } else {
+            actRemarks.setText(String.join(", ", selectedRemarks));
+        }
+    }
+
     private void setupListeners() {
         // Date Picker
         etHarvestDate.setOnClickListener(v -> showDatePicker());
@@ -287,15 +349,6 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
             //Toast.makeText(this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
             getLotInfo(selectedItem);
         });*/
-
-        actRemarks.setOnItemClickListener((parent, view, position, id) -> {
-            String selectedItem = parent.getItemAtPosition(position).toString();
-            if (selectedItem.equalsIgnoreCase("Other")){
-                til_remarks.setVisibility(View.VISIBLE);
-            }else {
-                til_remarks.setVisibility(View.GONE);
-            }
-        });
 
         actProdGrade.setOnItemClickListener((parent, view, position, id) -> {
             selProdGrade = parent.getItemAtPosition(position).toString();
@@ -339,13 +392,10 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
         String bags = etNumberOfBags.getText().toString().trim();
         String qty = etTotalWeight.getText().toString().trim();
         String tare = etTareWeight.getText().toString().trim();
-        String remarks = actRemarks.getText().toString().trim();
+        String remarks = String.join(",", selectedRemarks);
         String moisture = etMoisture.getText().toString().trim();
-        if (actRemarks.getText().toString().trim().equalsIgnoreCase("Other")){
-            remarks=etRemarks.getText().toString().trim();
-        }
         String gotStatus = ((RadioButton) findViewById(rgGOT.getCheckedRadioButtonId())).getText().toString();
-        //String moisture = ((RadioButton) findViewById(rgMoisture.getCheckedRadioButtonId())).getText().toString();
+        
         if (lot.isEmpty() || bags.isEmpty() || rgGOT.getCheckedRadioButtonId() == -1 || selProdGrade.isEmpty() || moisture.isEmpty()) {
             Utils.showAlert(this, "Please fill all fields");
             //Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
@@ -404,12 +454,11 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
                             SharedPreferences.getInstance(BagsActivationSetupActivityPrintRoll.this).storeObject(activationKey, "true");
                             
                             Toast.makeText(BagsActivationSetupActivityPrintRoll.this, activationSubmitResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            Intent intent = new Intent(getApplicationContext(), PrintBagsLabelActivity.class);
+                            Intent intent = new Intent(getApplicationContext(), BagsActivationScanningActivity.class);
                             intent.putExtra("lotNumber", lot);
-                            intent.putExtra("harvestdate", harvestDate);
-                            intent.putExtra("trid", activationSubmitResponse.getUser().getTrid());
-                            intent.putExtra("bagcount", bags);
+                            intent.putExtra("isPreprinted", true); // Mark as preprinted case
                             startActivity(intent);
+                            finish();
                         } else {
                             Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, activationSubmitResponse.getMsg());
                             //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, activationSubmitResponse.getMsg(), Toast.LENGTH_SHORT).show();
@@ -458,17 +507,23 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
                             Toast.makeText(BagsActivationSetupActivityPrintRoll.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            LotInfoData lotInfoData = lotInfoResponse.getData().get(0);
-                            selectedCropName = lotInfoData.getCropname();
-                            tvCrop.setText(lotInfoData.getCropname());
-                            tvSpCodef.setText(lotInfoData.getSpcodef());
-                            tvSpCodem.setText(lotInfoData.getSpcodem());
-                            tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
-                            tvHarvestDate.setText(lotInfoData.getHarvestdate());
-                            etNumberOfBags.setText(lotInfoData.getBags().toString());
-                            tvFarmerName.setText(lotInfoData.getFarmername());
-                            tvFarmerVillage.setText(lotInfoData.getProductionlocation());
-                            getRemarksList();
+                            // ✅ FIX: Check if data list is not null and not empty before accessing
+                            if (lotInfoResponse.getData() != null && !lotInfoResponse.getData().isEmpty()) {
+                                LotInfoData lotInfoData = lotInfoResponse.getData().get(0);
+                                selectedCropName = lotInfoData.getCropname();
+                                tvCrop.setText(lotInfoData.getCropname());
+                                tvSpCodef.setText(lotInfoData.getSpcodef());
+                                tvSpCodem.setText(lotInfoData.getSpcodem());
+                                tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
+                                tvHarvestDate.setText(lotInfoData.getHarvestdate());
+                                etNumberOfBags.setText(lotInfoData.getBags().toString());
+                                tvFarmerName.setText(lotInfoData.getFarmername());
+                                tvFarmerVillage.setText(lotInfoData.getProductionlocation());
+                                getRemarksList();
+                            } else {
+                                Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, "No lot information found");
+                                progressDialog.cancel();
+                            }
                         } else {
                             Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, lotInfoResponse.getMsg());
                             //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();

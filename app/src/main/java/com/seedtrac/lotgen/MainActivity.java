@@ -71,6 +71,13 @@ public class MainActivity extends AppCompatActivity {
         init();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh dashboard data whenever user returns to MainActivity
+        getDashboardData();
+    }
+
     @SuppressLint("SetTextI18n")
     private void setTheme() {
         Window window = getWindow();
@@ -118,17 +125,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void init(){
         getDashboardData();
-        ivBagActivation.setOnClickListener(v ->{
+        btnBagActivation.setOnClickListener(v ->{
                 Intent intent = new Intent(MainActivity.this, BagActivationPendingListActivity.class);
                 startActivity(intent);
         });
 
-        ivLoading.setOnClickListener(v -> {
+        btnLoading.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, LoadingTransactionsListActivity.class);
             startActivity(intent);
         });
 
-        ivRecieve.setOnClickListener(v -> {
+        btnRecieve.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, LotReceiveListActivity.class);
             startActivity(intent);
         });

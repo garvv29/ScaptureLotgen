@@ -138,6 +138,7 @@ public class GaurdSampleActivity extends AppCompatActivity {
     private void init(){
         userData = (User) com.seedtrac.lotgen.sessionmanager.SharedPreferences.getInstance(this).getObject(SharedPreferences.KEY_LOGIN_OBJ, User.class);
         getLotList();
+        getWhList();
         actLotNumber.setOnItemClickListener((parent, view, position, id) -> {
             String selectedItem = parent.getItemAtPosition(position).toString();
             //Toast.makeText(this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
@@ -195,7 +196,7 @@ public class GaurdSampleActivity extends AppCompatActivity {
                     System.out.print("Response : " + submitSuccessResponse);
                     if (submitSuccessResponse != null) {
                         if (submitSuccessResponse.getStatus()) {
-                            getWhList();
+
                         } else {
                             Utils.showAlert(GaurdSampleActivity.this, submitSuccessResponse.getMsg());
                             //Toast.makeText(BagsActivationScanningActivity.this, submitSuccessResponse.getMsg(), Toast.LENGTH_SHORT).show();
@@ -329,16 +330,23 @@ public class GaurdSampleActivity extends AppCompatActivity {
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
                             Toast.makeText(GaurdSampleActivity.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            LotInfoData lotInfoData = lotInfoResponse.getData().get(0);
-                            ll_lotinfo.setVisibility(View.VISIBLE);
-                            tvCrop.setText(lotInfoData.getCropname());
-                            tvSpCodef.setText(lotInfoData.getSpcodef()+" X "+lotInfoData.getSpcodem());
-                            tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
-                            tvFarmerName.setText(lotInfoData.getFarmername());
-                            tvFarmerVillage.setText(lotInfoData.getProductionlocation());
-                            tvBags.setText(lotInfoData.getBags().toString());
-                            tvTotalQty.setText(lotInfoData.getQty().toString());
-                            tvHarvestDate.setText(lotInfoData.getHarvestdate());
+                            // ✅ FIX: Check if data list is not null and not empty before accessing
+                            if (lotInfoResponse.getData() != null && !lotInfoResponse.getData().isEmpty()) {
+                                LotInfoData lotInfoData = lotInfoResponse.getData().get(0);
+                                ll_lotinfo.setVisibility(View.VISIBLE);
+                                tvCrop.setText(lotInfoData.getCropname());
+                                tvSpCodef.setText(lotInfoData.getSpcodef()+" X "+lotInfoData.getSpcodem());
+                                tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
+                                tvFarmerName.setText(lotInfoData.getFarmername());
+                                tvFarmerVillage.setText(lotInfoData.getProductionlocation());
+                                tvBags.setText(lotInfoData.getBags().toString());
+                                tvTotalQty.setText(String.format("%.3f", lotInfoData.getQty()));
+                                tvHarvestDate.setText(lotInfoData.getHarvestdate());
+                            } else {
+                                ll_lotinfo.setVisibility(View.GONE);
+                                Utils.showAlert(GaurdSampleActivity.this, "No lot information found");
+                                progressDialog.cancel();
+                            }
                         } else {
                             ll_lotinfo.setVisibility(View.GONE);
                             Utils.showAlert(GaurdSampleActivity.this, lotInfoResponse.getMsg());
@@ -434,7 +442,7 @@ public class GaurdSampleActivity extends AppCompatActivity {
         progressDialog.setMessage("Loading...");
         progressDialog.show();
         Log.e("Params:", userData.getMobile1()+"="+userData.getScode());
-        Call<ActLotListResponse> call =apiInterface.getLotList(userData.getMobile1(), userData.getScode());
+        Call<ActLotListResponse> call =apiInterface.getGsLotList(userData.getMobile1(), userData.getScode());
         call.enqueue(new Callback<>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override

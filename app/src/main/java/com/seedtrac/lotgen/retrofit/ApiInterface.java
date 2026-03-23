@@ -86,7 +86,7 @@ public interface ApiInterface {
     Call<LoadingTrPendingListResponse> getLoadingPendingList(@Query("mobile1") String mobile, @Query("scode") String scode);
 
     @GET("loadingfinal.php")
-    Call<SubmitSuccessResponse> loadingFinalSubmit(@Query("scode") String scode, @Query("trid") String trid);
+    Call<SubmitSuccessResponse> loadingFinalSubmit(@Query("scode") String scode, @Query("trid") String trid, @Query("vehiclepickup") String vehiclePickup);
 
     @GET("whlist.php")
     Call<WhListResponse> getWhList(@Query("mobile1") String mobile, @Query("scode") String scode);

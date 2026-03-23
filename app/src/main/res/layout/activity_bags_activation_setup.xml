@@ -453,13 +453,13 @@
                     android:padding="8dp" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Remarks -->
+            <!-- Remarks Multi-Select -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Remarks"
                 android:layout_marginTop="10dp"
-                app:endIconMode="dropdown_menu"
+                app:endIconMode="clear_text"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <AutoCompleteTextView
@@ -467,12 +467,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text"
-                    android:enabled="false"
-                    android:completionThreshold="1"
-                    android:dropDownHeight="wrap_content"
-                    android:dropDownVerticalOffset="8dp"
-                    android:dropDownHorizontalOffset="0dp"
-                    android:padding="8dp" />
+                    android:textSize="14sp"
+                    android:padding="12dp"
+                    android:focusable="false"
+                    android:cursorVisible="false"
+                    android:textColor="@android:color/black"
+                    android:textColorHint="@android:color/darker_gray"
+                    android:dropDownHeight="0dp" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout

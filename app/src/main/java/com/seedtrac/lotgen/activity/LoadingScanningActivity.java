@@ -37,6 +37,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.window.OnBackInvokedDispatcher;
@@ -247,18 +248,21 @@ public class LoadingScanningActivity extends AppCompatActivity implements Loadin
                     //Toast.makeText(LoadingScanningActivity.this, "Please add bags", Toast.LENGTH_SHORT).show();
                 }else{
                     final Dialog dialog = new Dialog(LoadingScanningActivity.this);
-                    dialog.setContentView(R.layout.submit_confirm_alert);
+                    dialog.setContentView(R.layout.submit_confirm_alert_loading_scanning);
                     Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
 
-                    /*TextView text = dialog.findViewById(R.id.tv_message);
-                    text.setText("Kindly check entered data before submission, once submitted it cannot be changed.\nAre you sure you want to submit?");*/
+                    RadioGroup rgVehiclePickup = dialog.findViewById(R.id.rgVehiclePickup);
                     Button btnCancel = dialog.findViewById(R.id.btnCancel);
                     Button btnSubmit = dialog.findViewById(R.id.btnSubmit);
 
                     btnCancel.setOnClickListener(view -> dialog.cancel());
 
                     btnSubmit.setOnClickListener(v1 -> {
-                        finalSubmit();
+                        int selectedId = rgVehiclePickup.getCheckedRadioButtonId();
+                        String vehiclePickup = selectedId == R.id.rbYes ? "yes" : "no";
+                        
+                        dialog.dismiss();
+                        finalSubmit(vehiclePickup);
                     });
                     dialog.show();
                 }
@@ -266,13 +270,13 @@ public class LoadingScanningActivity extends AppCompatActivity implements Loadin
         });
     }
 
-    private void finalSubmit() {
+    private void finalSubmit(String vehiclePickup) {
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
-        Log.e("Params:", userData.getScode()+"="+trid);
-        Call<SubmitSuccessResponse> call =apiInterface.loadingFinalSubmit(userData.getScode(), trid);
+        Log.e("Params:", userData.getScode()+"="+trid+"="+vehiclePickup);
+        Call<SubmitSuccessResponse> call =apiInterface.loadingFinalSubmit(userData.getScode(), trid, vehiclePickup);
         call.enqueue(new Callback<>() {
             @SuppressLint({"NotifyDataSetChanged", "SetTextI18n"})
             @Override

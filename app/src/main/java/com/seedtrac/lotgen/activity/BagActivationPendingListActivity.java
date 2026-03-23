@@ -128,6 +128,7 @@ public class BagActivationPendingListActivity extends AppCompatActivity implemen
                     @Override
                     public void onClick(View view) {
                         Intent intent = new Intent(BagActivationPendingListActivity.this, BagsActivationSetupActivity.class);
+                        intent.putExtra("isNewActivation", true);
                         startActivity(intent);
                     }
                 }

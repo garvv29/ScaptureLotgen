@@ -29,11 +29,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputLayout;
 import com.seedtrac.lotgen.MainActivity;
 import com.seedtrac.lotgen.R;
+import com.seedtrac.lotgen.adapter.GsSlocBarcodeAdapter;
 import com.seedtrac.lotgen.communicator.alertCommunicator;
+import com.seedtrac.lotgen.model.ScannedBarcode;
 import com.seedtrac.lotgen.parser.binlist.BinListResponse;
 import com.seedtrac.lotgen.parser.binlist.Datum;
 import com.seedtrac.lotgen.parser.gsbarcodeinfo.GsBarcodeInfoResponse;
@@ -63,9 +67,12 @@ import retrofit2.Response;
 public class GsSLOCShiftingActivity extends AppCompatActivity {
     private AutoCompleteTextView actLotNumber, dd_wh, dd_bin, dd_subbin;
     private TextView tvCrop, tvSpCodef, tvSpCodem, tvProductionPerson,tvLotNo, tvGsSLOC, tvBarcode;
-    private LinearLayout ll_lotinfo;
+    private LinearLayout ll_lotinfo, ll_table_header;
     private EditText etBarcode;
     private Button btnSubmit;
+    private RecyclerView rv_scanned_barcodes;
+    private GsSlocBarcodeAdapter scannedBarcodeAdapter;
+    private List<ScannedBarcode> scannedBarcodes = new ArrayList<>();
     private List<String> lots=new ArrayList<>();
     private List<Data> whlist=new ArrayList<>();
     private Integer whId=0;
@@ -116,6 +123,8 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
         dd_bin = findViewById(R.id.dd_bin);
         dd_subbin = findViewById(R.id.dd_subbin);
         ll_lotinfo = findViewById(R.id.ll_lotinfo);
+        ll_table_header = findViewById(R.id.ll_table_header);
+        rv_scanned_barcodes = findViewById(R.id.rv_scanned_barcodes);
         tvLotNo = findViewById(R.id.tvLotNo);
         tvBarcode = findViewById(R.id.tvBarcode);
         tvGsSLOC = findViewById(R.id.tvGsSLOC);
@@ -130,6 +139,11 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
         tvBags = findViewById(R.id.tvBags);
         tvTotalQty = findViewById(R.id.tvTotalQty);
         etBarcode = findViewById(R.id.etBarcode);
+
+        // Setup RecyclerView
+        rv_scanned_barcodes.setLayoutManager(new LinearLayoutManager(this));
+        scannedBarcodeAdapter = new GsSlocBarcodeAdapter(scannedBarcodes);
+        rv_scanned_barcodes.setAdapter(scannedBarcodeAdapter);
 
         // Set title
         TextView tvToolbarTitle = findViewById(R.id.tvToolbarTitle);
@@ -197,24 +211,39 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
                         if (lotInfoResponse.getStatus()) {
                             Toast.makeText(GsSLOCShiftingActivity.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
                             com.seedtrac.lotgen.parser.gsbarcodeinfo.User lotInfoData = lotInfoResponse.getUser().get(0);
-                            ll_lotinfo.setVisibility(View.VISIBLE);
-                            tvLotNo.setText(lotInfoData.getLotno());
-                            tvBarcode.setText(scanResult);
-                            tvGsSLOC.setText(lotInfoData.getWhname()+"/"+lotInfoData.getBinname());
-                            tvCrop.setText(lotInfoData.getCropname());
-                            tvSpCodef.setText(lotInfoData.getSpcodef()+" X "+lotInfoData.getSpcodem());
-                            tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
-                            tvFarmerName.setText(lotInfoData.getFarmername());
-                            tvFarmerVillage.setText(lotInfoData.getProductionlocation());
-                            tvBags.setText(lotInfoData.getBags().toString());
-                            tvTotalQty.setText(lotInfoData.getQty().toString());
-                            tvHarvestDate.setText(lotInfoData.getHarvestdate());
+                            
+                            // Check if barcode already exists in the list
+                            boolean exists = scannedBarcodes.stream()
+                                    .anyMatch(b -> b.getBarcode().equals(scanResult));
+                            
+                            if (!exists) {
+                                // Add barcode to the list
+                                ScannedBarcode barcode = new ScannedBarcode(
+                                        scannedBarcodes.size() + 1,
+                                        scanResult,
+                                        lotInfoData.getLotno()
+                                );
+                                scannedBarcodes.add(barcode);
+                                updateTableVisibility();
+                                scannedBarcodeAdapter.notifyDataSetChanged();
+                                
+                                // Disable WH and BIN after first barcode is added
+                                if (scannedBarcodes.size() == 1) {
+                                    dd_wh.setEnabled(false);
+                                    dd_bin.setEnabled(false);
+                                    Toast.makeText(GsSLOCShiftingActivity.this, "WH and Bin are now locked", Toast.LENGTH_SHORT).show();
+                                }
+                                
+                                Toast.makeText(GsSLOCShiftingActivity.this, "Barcode added to list", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(GsSLOCShiftingActivity.this, "Barcode already exists in the list", Toast.LENGTH_SHORT).show();
+                            }
+                            progressDialog.cancel();
                         } else {
                             ll_lotinfo.setVisibility(View.GONE);
                             Utils.showAlert(GsSLOCShiftingActivity.this, lotInfoResponse.getMsg());
-                            //Toast.makeText(BagsActivationSetupActivity.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            progressDialog.cancel();
                         }
-                        progressDialog.cancel();
                     }
                 } else {
                     progressDialog.cancel();
@@ -223,7 +252,6 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
                             JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
                             String msg = jsonObj.getString("msg");
                             Utils.showAlert(GsSLOCShiftingActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -236,30 +264,24 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
                 Utils.showAlert(GsSLOCShiftingActivity.this,"RetrofitError : " + t.getMessage());
-                //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void validateAndSubmit() {
-
-        String barcode = tvBarcode.getText().toString().trim();
-
         Dialog dialog = new Dialog(GsSLOCShiftingActivity.this);
         dialog.setContentView(R.layout.submit_confirm_alert);
         Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
-        /*TextView text = dialog.findViewById(R.id.tv_message);
-        text.setText("Check the data entered before submission, once submitted it cannot be edited.\nAre you sure you want to submit?");*/
         dialog.findViewById(R.id.btnSubmit).setOnClickListener(v -> {
-            if (barcode.isEmpty() || whId==0 || binId==0){
-                Utils.showAlert(GsSLOCShiftingActivity.this, "Please fill all the fields");
+            if (scannedBarcodes.isEmpty() || whId==0 || binId==0){
+                Utils.showAlert(GsSLOCShiftingActivity.this, "Please scan at least one barcode and select WH & Bin");
                 return;
             }
 
             Utils.getInstance().showSubmitConfirmAlert(GsSLOCShiftingActivity.this, "Do you want to submit this transaction?", new alertCommunicator() {
                 @Override
                 public void onClickPositiveBtn() {
-                    submitForm(barcode);
+                    submitForm();
                 }
 
                 @Override
@@ -274,13 +296,20 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void submitForm(String barcode) {
+    private void submitForm() {
+        // Build comma-separated barcode list
+        StringBuilder barcodeList = new StringBuilder();
+        for (int i = 0; i < scannedBarcodes.size(); i++) {
+            if (i > 0) barcodeList.append(",");
+            barcodeList.append(scannedBarcodes.get(i).getBarcode());
+        }
+
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
-        Log.e("Params:", userData.getScode()+"="+barcode);
-        Call<SubmitSuccessResponse> call =apiInterface.updateGsSLOCDetails(userData.getMobile1(), userData.getScode(), barcode, whId.toString(), binId.toString());
+        Log.e("Params:",userData.getMobile1()+"="+ userData.getScode()+"="+ barcodeList.toString()+"="+whId.toString()+"="+ binId.toString());
+        Call<SubmitSuccessResponse> call =apiInterface.updateGsSLOCDetails(userData.getMobile1(), userData.getScode(), barcodeList.toString(), whId.toString(), binId.toString());
         call.enqueue(new Callback<>() {
             @SuppressLint({"NotifyDataSetChanged", "SetTextI18n"})
             @Override
@@ -437,6 +466,19 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
                 //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void updateTableVisibility() {
+        if (scannedBarcodes.isEmpty()) {
+            ll_table_header.setVisibility(View.GONE);
+            rv_scanned_barcodes.setVisibility(View.GONE);
+            // Re-enable WH and BIN if list is emptied
+            dd_wh.setEnabled(true);
+            dd_bin.setEnabled(true);
+        } else {
+            ll_table_header.setVisibility(View.VISIBLE);
+            rv_scanned_barcodes.setVisibility(View.VISIBLE);
+        }
     }
 
 }

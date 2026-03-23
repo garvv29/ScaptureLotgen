@@ -11,6 +11,7 @@ import android.os.Bundle;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -68,6 +69,9 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
     private TextView tvFarmerName, tvFarmerVillage;
     private String selProdGrade="";
     private String selectedCropName="";
+    private List<String> remarksList = new ArrayList<>();
+    private boolean[] selectedRemarks;
+    private List<Integer> selectedRemarksIndexes = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -230,13 +234,14 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                     System.out.print("Response : " + actRemarksListResponse);
                     if (actRemarksListResponse != null) {
                         if (actRemarksListResponse.getStatus()) {
-                            List<String> remarkList = actRemarksListResponse.getData();
-                            ArrayAdapter<String> remarksAdapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_dropdown_item_1line, remarkList);
-                            actRemarks.setAdapter(remarksAdapter);
-                            actRemarks.setOnClickListener(v -> actRemarks.showDropDown());
+                            remarksList = actRemarksListResponse.getData();
+                            selectedRemarks = new boolean[remarksList.size()];
+                            selectedRemarksIndexes.clear();
+                            
+                            // Set click listener to open multi-select dialog
+                            actRemarks.setOnClickListener(v -> showRemarksMultiSelectDialog());
                         } else {
                             Utils.showAlert(BagsActivationSetupActivity.this, actRemarksListResponse.getMsg());
-                            //Toast.makeText(BagsActivationSetupActivity.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
                         }
                         progressDialog.cancel();
                     }
@@ -247,7 +252,6 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                             JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
                             String msg = jsonObj.getString("msg");
                             Utils.showAlert(BagsActivationSetupActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -260,9 +264,52 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
                 Utils.showAlert(BagsActivationSetupActivity.this,"RetrofitError : " + t.getMessage());
-                //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void showRemarksMultiSelectDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(BagsActivationSetupActivity.this);
+        builder.setTitle("Select Remarks");
+        
+        String[] remarksArray = remarksList.toArray(new String[0]);
+        
+        builder.setMultiChoiceItems(remarksArray, selectedRemarks, (dialog, which, isChecked) -> {
+            selectedRemarks[which] = isChecked;
+        });
+        
+        builder.setPositiveButton("OK", (dialog, which) -> {
+            selectedRemarksIndexes.clear();
+            StringBuilder selectedRemarksText = new StringBuilder();
+            
+            for (int i = 0; i < selectedRemarks.length; i++) {
+                if (selectedRemarks[i]) {
+                    selectedRemarksIndexes.add(i);
+                    if (selectedRemarksText.length() > 0) {
+                        selectedRemarksText.append(", ");
+                    }
+                    selectedRemarksText.append(remarksList.get(i));
+                }
+            }
+            
+            // Check if "Other" is selected and show custom remarks field
+            if (selectedRemarksText.toString().contains("Other")) {
+                til_remarks.setVisibility(View.VISIBLE);
+            } else {
+                til_remarks.setVisibility(View.GONE);
+            }
+            
+            // Display selected remarks in TextInputEditText
+            actRemarks.setText(selectedRemarksText.toString());
+            
+            dialog.dismiss();
+        });
+        
+        builder.setNegativeButton("Cancel", (dialog, which) -> {
+            dialog.dismiss();
+        });
+        
+        builder.show();
     }
 
     private void setupListeners() {
@@ -276,15 +323,6 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
             String selectedItem = parent.getItemAtPosition(position).toString();
             //Toast.makeText(this, "Selected: " + selectedItem, Toast.LENGTH_SHORT).show();
             getLotInfo(selectedItem);
-        });
-
-        actRemarks.setOnItemClickListener((parent, view, position, id) -> {
-            String selectedItem = parent.getItemAtPosition(position).toString();
-            if (selectedItem.equalsIgnoreCase("Other")){
-                til_remarks.setVisibility(View.VISIBLE);
-            }else {
-                til_remarks.setVisibility(View.GONE);
-            }
         });
 
         actProdGrade.setOnItemClickListener((parent, view, position, id) -> {
@@ -331,8 +369,13 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
         String tare = etTareWeight.getText().toString().trim();
         String remarks = actRemarks.getText().toString().trim();
         String moisture = etMoisture.getText().toString().trim();
-        if (actRemarks.getText().toString().trim().equalsIgnoreCase("Other")){
-            remarks=etRemarks.getText().toString().trim();
+        
+        // Check if "Other" is selected in the multi-select remarks
+        if (remarks.contains("Other")) {
+            String customRemarks = etRemarks.getText().toString().trim();
+            if (!customRemarks.isEmpty()) {
+                remarks = remarks + ", " + customRemarks;
+            }
         }
         String gotStatus = ((RadioButton) findViewById(rgGOT.getCheckedRadioButtonId())).getText().toString();
         //String moisture = ((RadioButton) findViewById(rgMoisture.getCheckedRadioButtonId())).getText().toString();
@@ -392,6 +435,7 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                             Toast.makeText(BagsActivationSetupActivity.this, activationSubmitResponse.getMsg(), Toast.LENGTH_SHORT).show();
                             Intent intent = new Intent(getApplicationContext(), BagsActivationScanningActivity.class);
                             intent.putExtra("lotNumber", lot);
+                            intent.putExtra("isPreprinted", true); // Mark as preprinted case for Guard Sample popup
                             startActivity(intent);
                         } else {
                             Utils.showAlert(BagsActivationSetupActivity.this, activationSubmitResponse.getMsg());
@@ -441,17 +485,23 @@ public class BagsActivationSetupActivity extends AppCompatActivity {
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
                             Toast.makeText(BagsActivationSetupActivity.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            LotInfoData lotInfoData = lotInfoResponse.getData().get(0);
-                            selectedCropName = lotInfoData.getCropname();
-                            tvCrop.setText(lotInfoData.getCropname());
-                            tvSpCodef.setText(lotInfoData.getSpcodef());
-                            tvSpCodem.setText(lotInfoData.getSpcodem());
-                            tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
-                            tvHarvestDate.setText(lotInfoData.getHarvestdate());
-                            etNumberOfBags.setText(lotInfoData.getBags().toString());
-                            tvFarmerName.setText(lotInfoData.getFarmername());
-                            tvFarmerVillage.setText(lotInfoData.getProductionlocation());
-                            getRemarksList();
+                            // ✅ FIX: Check if data list is not null and not empty before accessing
+                            if (lotInfoResponse.getData() != null && !lotInfoResponse.getData().isEmpty()) {
+                                LotInfoData lotInfoData = lotInfoResponse.getData().get(0);
+                                selectedCropName = lotInfoData.getCropname();
+                                tvCrop.setText(lotInfoData.getCropname());
+                                tvSpCodef.setText(lotInfoData.getSpcodef());
+                                tvSpCodem.setText(lotInfoData.getSpcodem());
+                                tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
+                                tvHarvestDate.setText(lotInfoData.getHarvestdate());
+                                etNumberOfBags.setText(lotInfoData.getBags().toString());
+                                tvFarmerName.setText(lotInfoData.getFarmername());
+                                tvFarmerVillage.setText(lotInfoData.getProductionlocation());
+                                getRemarksList();
+                            } else {
+                                Utils.showAlert(BagsActivationSetupActivity.this, "No lot information found");
+                                progressDialog.cancel();
+                            }
                         } else {
                             Utils.showAlert(BagsActivationSetupActivity.this, lotInfoResponse.getMsg());
                             //Toast.makeText(BagsActivationSetupActivity.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();

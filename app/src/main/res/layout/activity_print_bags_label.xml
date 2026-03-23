@@ -361,6 +361,7 @@
                 android:layout_height="wrap_content"
                 android:hint="Scan QR code"
                 android:inputType="text"
+                android:imeOptions="actionDone"
                 android:layout_weight="1"
                 android:background="@drawable/edittext_bg"
                 android:padding="12dp"

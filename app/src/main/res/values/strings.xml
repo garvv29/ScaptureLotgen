@@ -10,5 +10,5 @@
     <string name="submit">Submit</string>
     <string name="final_submit">Final Submit</string>
     <string name="submit_alert">Check the data entered before submission, once submitted it cannot be edited.\nAre you sure you want to submit?</string>
-    <string name="add_new">Add New</string>
+    <string name="add_new">Add New Lot</string>
 </resources>

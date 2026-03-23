@@ -23,6 +23,7 @@
         android:layout_height="0dp"
         android:background="@color/bg_color"
         android:padding="12dp"
+        android:paddingBottom="72dp"
         app:layout_constraintTop_toBottomOf="@id/include"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -54,7 +55,58 @@
                 android:textColor="@android:color/darker_gray"
                 android:layout_marginBottom="16dp" />
 
-            <!-- Number of Bags -->
+            <!-- WH and BIN Selection -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="12dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="WH"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    app:endIconMode="dropdown_menu"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/dd_wh"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:completionThreshold="1"
+                        android:dropDownHeight="wrap_content"
+                        android:dropDownVerticalOffset="8dp"
+                        android:dropDownHorizontalOffset="0dp"
+                        android:padding="16dp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="GS Bin"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    app:endIconMode="dropdown_menu"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/dd_bin"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:completionThreshold="1"
+                        android:dropDownHeight="wrap_content"
+                        android:dropDownVerticalOffset="8dp"
+                        android:dropDownHorizontalOffset="0dp"
+                        android:padding="16dp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+
+            <!-- Scan Barcode -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -66,18 +118,81 @@
                     android:id="@+id/etBarcode"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:maxLength="8"
+                    android:maxLength="11"
                     android:inputType="text" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Lot Info -->
+            <!-- Scanned Barcodes Table Header -->
+            <LinearLayout
+                android:id="@+id/ll_table_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_add_button"
+                android:gravity="center_vertical">
+
+                <!-- Sr No Header -->
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.8"
+                    android:text="Sr No"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:gravity="center" />
+
+                <!-- Barcode Header -->
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:text="Barcode"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:gravity="center" />
+
+                <!-- Lot No Header -->
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.5"
+                    android:text="Lot No"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:gravity="center" />
+
+                <!-- Action Header -->
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:gravity="center" />
+
+            </LinearLayout>
+
+            <!-- Scanned Barcodes RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_scanned_barcodes"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginTop="4dp"
+                android:background="@android:color/white"
+                android:visibility="gone" />
+
+            <!-- Lot Info (Hidden for now) -->
             <LinearLayout
                 android:id="@+id/ll_lotinfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/white_card">
+                android:background="@drawable/white_card"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -383,94 +498,23 @@
 
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="12dp">
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="WH"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    app:endIconMode="dropdown_menu"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-                    <AutoCompleteTextView
-                        android:id="@+id/dd_wh"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="text"
-                        android:completionThreshold="1"
-                        android:dropDownHeight="wrap_content"
-                        android:dropDownVerticalOffset="8dp"
-                        android:dropDownHorizontalOffset="0dp"
-                        android:padding="16dp" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Bin"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    app:endIconMode="dropdown_menu"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-                    <AutoCompleteTextView
-                        android:id="@+id/dd_bin"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="text"
-                        android:completionThreshold="1"
-                        android:dropDownHeight="wrap_content"
-                        android:dropDownVerticalOffset="8dp"
-                        android:dropDownHorizontalOffset="0dp"
-                        android:padding="16dp" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Sub Bin"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:visibility="gone"
-                    app:endIconMode="dropdown_menu"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-                    <AutoCompleteTextView
-                        android:id="@+id/dd_subbin"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="text"
-                        android:completionThreshold="1"
-                        android:dropDownHeight="wrap_content"
-                        android:dropDownVerticalOffset="8dp"
-                        android:dropDownHorizontalOffset="0dp"
-                        android:padding="16dp" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-            </LinearLayout>
-
-            <!-- Submit Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSubmit"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Submit"
-                android:backgroundTint="@color/light_blue"
-                android:textColor="@android:color/white"
-                android:layout_marginTop="8dp"
-                app:cornerRadius="8dp"
-                android:layout_marginBottom="4dp"
-                android:layout_marginHorizontal="4dp"
-                android:elevation="4dp" />
-
         </LinearLayout>
 
     </ScrollView>
+
+    <!-- Submit Button (Fixed at Bottom) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSubmit"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Submit"
+        android:backgroundTint="@color/light_blue"
+        android:textColor="@android:color/white"
+        android:layout_margin="12dp"
+        app:cornerRadius="8dp"
+        android:elevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

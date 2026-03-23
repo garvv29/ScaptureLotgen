@@ -167,8 +167,6 @@ public class LoadingSetupActivity extends AppCompatActivity {
             Dialog dialog = new Dialog(LoadingSetupActivity.this);
             dialog.setContentView(R.layout.submit_confirm_alert);
             Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
-            /*TextView text = dialog.findViewById(R.id.tv_message);
-            text.setText("Check the data entered before submission, once submitted it cannot be edited.\nAre you sure you want to submit?");*/
             dialog.findViewById(R.id.btnSubmit).setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

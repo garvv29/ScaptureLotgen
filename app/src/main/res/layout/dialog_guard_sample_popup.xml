@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/parent"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:background="@android:color/transparent"
+    android:orientation="vertical">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="1dp"
+        android:background="@android:color/transparent"
+        app:cardCornerRadius="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:orientation="vertical">
+
+            <!-- Header Bar -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="20dp"
+                android:background="@color/light_blue" />
+
+            <!-- Title -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Guard Sample"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/textdata_color"
+                android:padding="16dp"
+                android:gravity="center" />
+
+            <!-- Content Container -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Guard Sample Yes/No RadioGroup (FIRST QUESTION) -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Do you have Guard Sample?"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/textdata_color"
+                    android:layout_marginBottom="10dp" />
+
+                <RadioGroup
+                    android:id="@+id/rgGuardSample"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="20dp">
+
+                    <RadioButton
+                        android:id="@+id/rbGuardSampleYes"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Yes"
+                        android:textColor="@color/textdata_color"
+                        android:layout_marginRight="20dp" />
+
+                    <RadioButton
+                        android:id="@+id/rbGuardSampleNo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No"
+                        android:textColor="@color/textdata_color" />
+                </RadioGroup>
+
+                <!-- Container for fields shown only when Guard Sample = Yes -->
+                <LinearLayout
+                    android:id="@+id/guardSampleDetailsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <!-- Lot Number (Read-only) - Hidden from user view -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="15dp"
+                        android:visibility="gone"
+                        app:boxBackgroundColor="@android:color/white"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etLotNumber"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Lot Number"
+                            android:inputType="text"
+                            android:enabled="false"
+                            android:textColor="@color/textdata_color" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Barcode Scan -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="15dp"
+                        app:boxBackgroundColor="@android:color/white"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etBarcodeScan"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Scan Barcode"
+                            android:inputType="text"
+                            android:textColor="@color/textdata_color" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- WH and GS BIN side by side -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="15dp"
+                        android:spacing="10dp">
+
+                        <!-- WH Dropdown -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:boxBackgroundColor="@android:color/white"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/dd_wh_popup"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="WH"
+                                android:inputType="text"
+                                android:textColor="@color/textdata_color" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- GS BIN Dropdown -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:boxBackgroundColor="@android:color/white"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/dd_bin_popup"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="GS Bin"
+                                android:inputType="text"
+                                android:textColor="@color/textdata_color" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+
+                    <!-- Farmer's GS Handover RadioGroup -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Farmer's GS handover?"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/textdata_color"
+                        android:layout_marginBottom="10dp" />
+
+                    <RadioGroup
+                        android:id="@+id/rgFarmerHandover"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="20dp">
+
+                        <RadioButton
+                            android:id="@+id/rbYes"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Yes"
+                            android:textColor="@color/textdata_color"
+                            android:layout_marginRight="20dp" />
+
+                        <RadioButton
+                            android:id="@+id/rbNo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No"
+                            android:textColor="@color/textdata_color" />
+                    </RadioGroup>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Button Layout -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:padding="16dp"
+                android:spacing="10dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCancel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cancel"
+                    android:layout_marginRight="10dp"
+                    app:cornerRadius="8dp"
+                    android:textColor="@android:color/white"
+                    android:backgroundTint="#0B60E6" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSubmit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Submit"
+                    app:cornerRadius="8dp"
+                    android:textColor="@android:color/white"
+                    android:backgroundTint="#0B60E6" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</LinearLayout>

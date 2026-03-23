@@ -162,6 +162,8 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
             actLotNumber.setText(lotnumber);
             actLotNumber.setEnabled(false);
             actLotNumber.setClickable(false);
+            etLotNumber.setText(lotnumber);
+            etLotNumber.setEnabled(false);
             dd_wh.setText(whname);
             dd_bin.setText(binname);
             etHarvestDate.setText(harvestdate);
@@ -315,8 +317,16 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                             Log.e("TagType Check", "updateLot - tagType: " + tagType);
                             if (tagType != null && tagType.equalsIgnoreCase("Roll")){
                                 Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
-                                Intent intent = new Intent(LotReceiveActivity.this, BagsActivationSetupActivityPrintRoll.class);
+                                Intent intent = new Intent(LotReceiveActivity.this, PrintBagsLabelActivity.class);
                                 intent.putExtra("lotNumber", lot);
+                                intent.putExtra("harvestdate", harvestDate);
+                                intent.putExtra("bagcount", bagcount);
+                                intent.putExtra("whname", whname);
+                                intent.putExtra("binname", binname);
+                                intent.putExtra("whid", whId);
+                                intent.putExtra("binid", binId);
+                                intent.putExtra("trid", trid);
+                                intent.putExtra("rowid", rowid);
                                 intent.putExtra("sourceActivity", "LotReceiveActivity");
                                 startActivity(intent);
                                 finish();
@@ -376,8 +386,16 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                             Log.e("TagType Check", "submitForm - tagType: " + tagType);
                             Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
                             if (tagType != null && tagType.equalsIgnoreCase("Roll")){
-                                Intent intent = new Intent(LotReceiveActivity.this, BagsActivationSetupActivityPrintRoll.class);
+                                Intent intent = new Intent(LotReceiveActivity.this, PrintBagsLabelActivity.class);
                                 intent.putExtra("lotNumber", lot);
+                                intent.putExtra("harvestdate", harvestDate);
+                                intent.putExtra("bagcount", bagcount);
+                                intent.putExtra("whname", whname);
+                                intent.putExtra("binname", binname);
+                                intent.putExtra("whid", whId);
+                                intent.putExtra("binid", binId);
+                                intent.putExtra("trid", trid);
+                                intent.putExtra("rowid", rowid);
                                 intent.putExtra("sourceActivity", "LotReceiveActivity");
                                 startActivity(intent);
                                 finish();
@@ -434,15 +452,22 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
                             Toast.makeText(LotReceiveActivity.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            LotInfoData lotInfoData = lotInfoResponse.getData().get(0);
-                            ll_lotinfo.setVisibility(View.VISIBLE);
-                            tvCrop.setText(lotInfoData.getCropname());
-                            tvSpCodef.setText(lotInfoData.getSpcodef());
-                            tvSpCodem.setText(lotInfoData.getSpcodem());
-                            tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
-                            tvFarmerName.setText(lotInfoData.getFarmername());
-                            tvFarmerVillage.setText(lotInfoData.getProductionlocation());
-                            getWhList();
+                            // ✅ FIX: Check if data list is not null and not empty before accessing
+                            if (lotInfoResponse.getData() != null && !lotInfoResponse.getData().isEmpty()) {
+                                LotInfoData lotInfoData = lotInfoResponse.getData().get(0);
+                                ll_lotinfo.setVisibility(View.VISIBLE);
+                                tvCrop.setText(lotInfoData.getCropname());
+                                tvSpCodef.setText(lotInfoData.getSpcodef());
+                                tvSpCodem.setText(lotInfoData.getSpcodem());
+                                tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
+                                tvFarmerName.setText(lotInfoData.getFarmername());
+                                tvFarmerVillage.setText(lotInfoData.getProductionlocation());
+                                getWhList();
+                            } else {
+                                ll_lotinfo.setVisibility(View.GONE);
+                                Utils.showAlert(LotReceiveActivity.this, "No lot information found");
+                                progressDialog.cancel();
+                            }
                         } else {
                             ll_lotinfo.setVisibility(View.GONE);
                             Utils.showAlert(LotReceiveActivity.this, lotInfoResponse.getMsg());

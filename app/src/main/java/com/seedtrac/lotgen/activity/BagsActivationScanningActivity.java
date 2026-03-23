@@ -17,11 +17,16 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowInsetsController;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.window.OnBackInvokedDispatcher;
@@ -107,6 +112,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
     private int currentRetryCount = 0;
     private Set<BluetoothDevice> pairedDevices;
     private static final int BT_PERMISSION_REQUEST = 101;
+    private boolean isPreprinted = false; // Flag to track if it's preprinted case
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -182,6 +188,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
 
         // Get data from previous screen
         lotNumber = getIntent().getStringExtra("lotNumber");
+        isPreprinted = getIntent().getBooleanExtra("isPreprinted", false);
 
         // Setup RecyclerView
         bagList = new ArrayList<>();
@@ -270,19 +277,25 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 }/*else if (barcodeList.size()>lotInfoData.getBags()){
                     Utils.showAlert(BagsActivationScanningActivity.this, "Scanned bags are not matched with setup bags. If you want to continue with this bags, then edit setup bags and try to submit again");
                 }else*/{
-                    final Dialog dialog = new Dialog(BagsActivationScanningActivity.this);
-                    dialog.setContentView(R.layout.submit_confirm_alert);
-                    Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                    // Show Guard Sample popup instead of confirmation dialog (for preprinted case)
+                    if (isPreprinted) {
+                        showGuardSamplePopupForActivation();
+                    } else {
+                        // For non-preprinted case, show regular confirmation
+                        final Dialog dialog = new Dialog(BagsActivationScanningActivity.this);
+                        dialog.setContentView(R.layout.submit_confirm_alert);
+                        Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
 
-                    Button btnCancel = dialog.findViewById(R.id.btnCancel);
-                    Button btnSubmit = dialog.findViewById(R.id.btnSubmit);
+                        Button btnCancel = dialog.findViewById(R.id.btnCancel);
+                        Button btnSubmit = dialog.findViewById(R.id.btnSubmit);
 
-                    btnCancel.setOnClickListener(view -> dialog.cancel());
+                        btnCancel.setOnClickListener(view -> dialog.cancel());
 
-                    btnSubmit.setOnClickListener(v1 -> {
-                        finalSubmit();
-                    });
-                    dialog.show();
+                        btnSubmit.setOnClickListener(v1 -> {
+                            finalSubmit();
+                        });
+                        dialog.show();
+                    }
                 }
             }
         });
@@ -538,7 +551,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 establishBluetooth();
             }
             while ((bytes = inputStream.read(buffer)) != -1) {
-                weightData = new String(buffer, 0, bytes);
+                weightData = new String(buffer, 0, bytes).trim();
                 //Parse and use the weight data
                 Log.d("Weight Data", weightData);
             }
@@ -573,14 +586,16 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                     if (submitSuccessResponse != null) {
                         if (submitSuccessResponse.getStatus()) {
                             Toast.makeText(BagsActivationScanningActivity.this, submitSuccessResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            progressDialog.cancel();
+                            
+                            // Activation successful, proceed to MainActivity
                             Intent intent = new Intent(BagsActivationScanningActivity.this, MainActivity.class);
                             startActivity(intent);
                             finish();
                         } else {
                             Utils.showAlert(BagsActivationScanningActivity.this, submitSuccessResponse.getMsg());
-                            //Toast.makeText(BagsActivationScanningActivity.this, submitSuccessResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            progressDialog.cancel();
                         }
-                        progressDialog.cancel();
                     }
                 } else {
                     progressDialog.cancel();
@@ -589,7 +604,6 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                             JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
                             String msg = jsonObj.getString("msg");
                             Utils.showAlert(BagsActivationScanningActivity.this, msg);
-                            //Toast.makeText(BagsActivationScanningActivity.this, msg, Toast.LENGTH_SHORT).show();
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -602,7 +616,6 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
                 Utils.showAlert(BagsActivationScanningActivity.this, "RetrofitError : " + t.getMessage());
-                //Toast.makeText(BagsActivationScanningActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -726,20 +739,26 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                     System.out.print("Response : " + lotInfoResponse);
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
-                            lotInfoData = lotInfoResponse.getData().get(0);
-                            tvLotNumber.setText(lotInfoData.getLotno());
-                            tvHarvestDate.setText(lotInfoData.getHarvestdate());
-                            tvBags.setText(lotInfoData.getBags().toString());
-                            tvQty.setText(lotInfoData.getQty().toString());
-                            tvGotStatus.setText(lotInfoData.getGotstatus());
-                            tvMoisture.setText(lotInfoData.getMoisture());
-                            tvCrop.setText(lotInfoData.getCropname());
-                            tvSpCode.setText(lotInfoData.getSpcodef() + " X " + lotInfoData.getSpcodem());
-                            tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
-                            tvRemarks.setText(lotInfoData.getRemarks());
-                            tvFarmerName.setText(lotInfoData.getFarmername());
-                            tvFarmerVillage.setText(lotInfoData.getProductionlocation());
-                            getActBarcodeList(lotInfoData.getTrid());
+                            // ✅ FIX: Check if data list is not null and not empty before accessing
+                            if (lotInfoResponse.getData() != null && !lotInfoResponse.getData().isEmpty()) {
+                                lotInfoData = lotInfoResponse.getData().get(0);
+                                tvLotNumber.setText(lotInfoData.getLotno());
+                                tvHarvestDate.setText(lotInfoData.getHarvestdate());
+                                tvBags.setText(lotInfoData.getBags().toString());
+                                tvQty.setText(lotInfoData.getQty().toString());
+                                tvGotStatus.setText(lotInfoData.getGotstatus());
+                                tvMoisture.setText(lotInfoData.getMoisture());
+                                tvCrop.setText(lotInfoData.getCropname());
+                                tvSpCode.setText(lotInfoData.getSpcodef() + " X " + lotInfoData.getSpcodem());
+                                tvProductionPerson.setText(lotInfoData.getProductionpersonnel());
+                                tvRemarks.setText(lotInfoData.getRemarks());
+                                tvFarmerName.setText(lotInfoData.getFarmername());
+                                tvFarmerVillage.setText(lotInfoData.getProductionlocation());
+                                getActBarcodeList(lotInfoData.getTrid());
+                            } else {
+                                Utils.showAlert(BagsActivationScanningActivity.this, "No lot information found");
+                                progressDialog.cancel();
+                            }
                         } else {
                             Utils.showAlert(BagsActivationScanningActivity.this, lotInfoResponse.getMsg());
                             //Toast.makeText(BagsActivationScanningActivity.this, lotInfoResponse.getMsg(), Toast.LENGTH_SHORT).show();
@@ -830,6 +849,301 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 Log.e("Error", "RetrofitError : " + t.getMessage());
                 Utils.showAlert(BagsActivationScanningActivity.this, "RetrofitError : " + t.getMessage());
                 //Toast.makeText(BagsActivationScanningActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void showGuardSamplePopup() {
+        final Dialog dialog = new Dialog(BagsActivationScanningActivity.this);
+        dialog.setContentView(R.layout.dialog_guard_sample_popup);
+        Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        RadioGroup rgGuardSample = dialog.findViewById(R.id.rgGuardSample);
+        LinearLayout guardSampleDetailsContainer = dialog.findViewById(R.id.guardSampleDetailsContainer);
+        
+        TextInputEditText etLotNumber = dialog.findViewById(R.id.etLotNumber);
+        TextInputEditText etBarcodeScan = dialog.findViewById(R.id.etBarcodeScan);
+        AutoCompleteTextView dd_wh_popup = dialog.findViewById(R.id.dd_wh_popup);
+        AutoCompleteTextView dd_bin_popup = dialog.findViewById(R.id.dd_bin_popup);
+        RadioGroup rgFarmerHandover = dialog.findViewById(R.id.rgFarmerHandover);
+        MaterialButton btnCancel = dialog.findViewById(R.id.btnCancel);
+        MaterialButton btnSubmit = dialog.findViewById(R.id.btnSubmit);
+
+        // Set lot number
+        etLotNumber.setText(lotNumber);
+
+        // Handle Guard Sample Yes/No selection
+        rgGuardSample.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.rbGuardSampleYes) {
+                // Show the details container
+                guardSampleDetailsContainer.setVisibility(View.VISIBLE);
+                
+                // Load WH List only when Yes is selected
+                List<com.seedtrac.lotgen.parser.whlist.Data> whList = new ArrayList<>();
+                dd_wh_popup.setOnClickListener(v -> dd_wh_popup.showDropDown());
+                dd_bin_popup.setOnClickListener(v -> dd_bin_popup.showDropDown());
+
+                // Fetch WH list
+                getWhListForPopup(dd_wh_popup, dd_bin_popup, whList, dialog);
+            } else {
+                // Hide the details container
+                guardSampleDetailsContainer.setVisibility(View.GONE);
+            }
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnSubmit.setOnClickListener(v -> {
+            int guardSampleId = rgGuardSample.getCheckedRadioButtonId();
+            
+            if (guardSampleId == -1) {
+                Utils.showAlert(BagsActivationScanningActivity.this, "Please select Guard Sample Yes or No");
+                return;
+            }
+
+            // If No is selected, just proceed without validation
+            if (guardSampleId == R.id.rbGuardSampleNo) {
+                // Proceed to MainActivity without Guard Sample details
+                Intent intent = new Intent(BagsActivationScanningActivity.this, MainActivity.class);
+                startActivity(intent);
+                dialog.dismiss();
+                finish();
+                return;
+            }
+
+            // If Yes is selected, validate all fields
+            String barcode = etBarcodeScan.getText().toString().trim();
+            String selectedWh = dd_wh_popup.getText().toString().trim();
+            String selectedBin = dd_bin_popup.getText().toString().trim();
+
+            // Get selected value from farmer handover radio group
+            int farmerHandoverId = rgFarmerHandover.getCheckedRadioButtonId();
+
+            if (barcode.isEmpty() || selectedWh.isEmpty() || selectedBin.isEmpty()) {
+                Utils.showAlert(BagsActivationScanningActivity.this, "Please fill all fields");
+                return;
+            }
+
+            if (farmerHandoverId == -1) {
+                Utils.showAlert(BagsActivationScanningActivity.this, "Please select Farmer Handover");
+                return;
+            }
+
+            // Get radio button text
+            RadioButton rbFarmerHandover = dialog.findViewById(farmerHandoverId);
+            String farmerHandover = rbFarmerHandover.getText().toString();
+
+            // Submit guard sample and proceed
+            submitGuardSampleAndProceed(lotNumber, barcode, farmerHandover, dialog);
+        });
+
+        dialog.show();
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void showGuardSamplePopupForActivation() {
+        final Dialog dialog = new Dialog(BagsActivationScanningActivity.this);
+        dialog.setContentView(R.layout.dialog_guard_sample_popup);
+        Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        RadioGroup rgGuardSample = dialog.findViewById(R.id.rgGuardSample);
+        LinearLayout guardSampleDetailsContainer = dialog.findViewById(R.id.guardSampleDetailsContainer);
+        
+        TextInputEditText etLotNumber = dialog.findViewById(R.id.etLotNumber);
+        TextInputEditText etBarcodeScan = dialog.findViewById(R.id.etBarcodeScan);
+        AutoCompleteTextView dd_wh_popup = dialog.findViewById(R.id.dd_wh_popup);
+        AutoCompleteTextView dd_bin_popup = dialog.findViewById(R.id.dd_bin_popup);
+        RadioGroup rgFarmerHandover = dialog.findViewById(R.id.rgFarmerHandover);
+        MaterialButton btnCancel = dialog.findViewById(R.id.btnCancel);
+        MaterialButton btnSubmit = dialog.findViewById(R.id.btnSubmit);
+
+        // Set lot number
+        etLotNumber.setText(lotNumber);
+
+        // Handle Guard Sample Yes/No selection
+        rgGuardSample.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.rbGuardSampleYes) {
+                // Show the details container
+                guardSampleDetailsContainer.setVisibility(View.VISIBLE);
+                
+                // Load WH List only when Yes is selected
+                List<com.seedtrac.lotgen.parser.whlist.Data> whList = new ArrayList<>();
+                dd_wh_popup.setOnClickListener(v -> dd_wh_popup.showDropDown());
+                dd_bin_popup.setOnClickListener(v -> dd_bin_popup.showDropDown());
+
+                // Fetch WH list
+                getWhListForPopup(dd_wh_popup, dd_bin_popup, whList, dialog);
+            } else {
+                // Hide the details container
+                guardSampleDetailsContainer.setVisibility(View.GONE);
+            }
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnSubmit.setOnClickListener(v -> {
+            int guardSampleId = rgGuardSample.getCheckedRadioButtonId();
+            
+            if (guardSampleId == -1) {
+                Utils.showAlert(BagsActivationScanningActivity.this, "Please select Guard Sample Yes or No");
+                return;
+            }
+
+            // If No is selected, proceed with activation without Guard Sample validation
+            if (guardSampleId == R.id.rbGuardSampleNo) {
+                dialog.dismiss();
+                finalSubmit();
+                return;
+            }
+
+            // If Yes is selected, validate Guard Sample fields
+            String barcode = etBarcodeScan.getText().toString().trim();
+            String selectedWh = dd_wh_popup.getText().toString().trim();
+            String selectedBin = dd_bin_popup.getText().toString().trim();
+
+            // Get selected value from farmer handover radio group
+            int farmerHandoverId = rgFarmerHandover.getCheckedRadioButtonId();
+
+            if (barcode.isEmpty() || selectedWh.isEmpty() || selectedBin.isEmpty()) {
+                Utils.showAlert(BagsActivationScanningActivity.this, "Please fill all Guard Sample fields");
+                return;
+            }
+
+            if (farmerHandoverId == -1) {
+                Utils.showAlert(BagsActivationScanningActivity.this, "Please select Farmer Handover");
+                return;
+            }
+
+            // Guard Sample validation passed, now proceed with activation
+            dialog.dismiss();
+            finalSubmit();
+        });
+
+        dialog.show();
+    }
+
+    private void getWhListForPopup(AutoCompleteTextView dd_wh, AutoCompleteTextView dd_bin, 
+                                    List<com.seedtrac.lotgen.parser.whlist.Data> whList, Dialog dialog) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+
+        Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> call = apiInterface.getWhList(userData.getMobile1(), userData.getScode());
+        call.enqueue(new Callback<com.seedtrac.lotgen.parser.whlist.WhListResponse>() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.whlist.WhListResponse> response) {
+                if (response.isSuccessful()) {
+                    com.seedtrac.lotgen.parser.whlist.WhListResponse whListResponse = response.body();
+                    if (whListResponse != null && whListResponse.getStatus()) {
+                        List<com.seedtrac.lotgen.parser.whlist.Data> dataList = whListResponse.getData();
+                        whList.addAll(dataList);
+                        List<String> whNames = new ArrayList<>();
+                        for (com.seedtrac.lotgen.parser.whlist.Data w : dataList) {
+                            whNames.add(w.getWhname());
+                        }
+                        ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this, 
+                            android.R.layout.simple_dropdown_item_1line, whNames);
+                        dd_wh.setAdapter(adapter);
+
+                        // WH selection listener
+                        dd_wh.setOnItemClickListener((parent, view, position, id) -> {
+                            com.seedtrac.lotgen.parser.whlist.Data selectedWhData = dataList.get(position);
+                            Integer whId = selectedWhData.getWhid();
+                            getBinListForPopup(whId, dd_bin);
+                        });
+                    }
+                    progressDialog.cancel();
+                } else {
+                    progressDialog.cancel();
+                    Utils.showAlert(BagsActivationScanningActivity.this, "Failed to load WH list");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
+            }
+        });
+    }
+
+    private void getBinListForPopup(Integer whId, AutoCompleteTextView dd_bin) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+
+        Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> call = apiInterface.getBinList(userData.getMobile1(), userData.getScode(), whId);
+        call.enqueue(new Callback<com.seedtrac.lotgen.parser.binlist.BinListResponse>() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.binlist.BinListResponse> response) {
+                if (response.isSuccessful()) {
+                    com.seedtrac.lotgen.parser.binlist.BinListResponse binListResponse = response.body();
+                    if (binListResponse != null && binListResponse.getStatus()) {
+                        List<com.seedtrac.lotgen.parser.binlist.Datum> binList = binListResponse.getData();
+                        List<String> binNames = new ArrayList<>();
+                        for (com.seedtrac.lotgen.parser.binlist.Datum b : binList) {
+                            binNames.add(b.getBinname());
+                        }
+                        ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this, 
+                            android.R.layout.simple_dropdown_item_1line, binNames);
+                        dd_bin.setAdapter(adapter);
+                    }
+                    progressDialog.cancel();
+                } else {
+                    progressDialog.cancel();
+                    Utils.showAlert(BagsActivationScanningActivity.this, "Failed to load BIN list");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
+            }
+        });
+    }
+
+    private void submitGuardSampleAndProceed(String lot, String barcode, String farmerHandover, Dialog dialog) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+
+        Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), barcode);
+        call.enqueue(new Callback<SubmitSuccessResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
+                if (response.isSuccessful()) {
+                    SubmitSuccessResponse submitResponse = response.body();
+                    if (submitResponse != null && submitResponse.getStatus()) {
+                        dialog.dismiss();
+                        progressDialog.cancel();
+                        Log.e("GuardSample", "Barcode: "+barcode+", Farmer Handover: "+farmerHandover);
+                        // Proceed to MainActivity after guard sample validation
+                        Intent intent = new Intent(BagsActivationScanningActivity.this, MainActivity.class);
+                        startActivity(intent);
+                        finish();
+                    } else {
+                        progressDialog.cancel();
+                        Utils.showAlert(BagsActivationScanningActivity.this, "Invalid barcode");
+                    }
+                } else {
+                    progressDialog.cancel();
+                    Utils.showAlert(BagsActivationScanningActivity.this, "Failed to validate barcode");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
             }
         });
     }
