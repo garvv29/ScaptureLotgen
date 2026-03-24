@@ -14,6 +14,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -963,6 +965,27 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
         // Set lot number
         etLotNumber.setText(lotNumber);
 
+        // Add real-time barcode validation listener for Guard Sample popup
+        etBarcodeScan.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String scanResult = etBarcodeScan.getText().toString().trim();
+                if (!scanResult.isEmpty()) {
+                    if (scanResult.length() == 8 || scanResult.length() == 11) {
+                        validateBarcodeForActivationPopup(scanResult);
+                    }
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+
         // Handle Guard Sample Yes/No selection
         rgGuardSample.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.rbGuardSampleYes) {
@@ -1161,6 +1184,44 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Real-time validation of barcode for Guard Sample popup during activation
+     * Validates barcode with 8 or 11 character length
+     */
+    private void validateBarcodeForActivationPopup(String scanResult) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        Log.e("BarcodeValidation", "Validating barcode: " + scanResult);
+        
+        Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), scanResult);
+        call.enqueue(new Callback<SubmitSuccessResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
+                if (response.isSuccessful()) {
+                    SubmitSuccessResponse validationResponse = response.body();
+                    if (validationResponse != null) {
+                        if (validationResponse.getStatus()) {
+                            // Valid barcode - show success message
+                            Toast.makeText(BagsActivationScanningActivity.this, "Barcode Valid", Toast.LENGTH_SHORT).show();
+                            Log.e("BarcodeValidation", "Barcode validation successful for: " + scanResult);
+                        } else {
+                            // Invalid barcode - show error message
+                            Toast.makeText(BagsActivationScanningActivity.this, validationResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Log.e("BarcodeValidation", "Barcode validation failed: " + validationResponse.getMsg());
+                        }
+                    }
+                } else {
+                    Log.e("BarcodeValidation", "API response unsuccessful: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
+                Log.e("BarcodeValidation", "API call failed: " + t.getMessage());
+                Toast.makeText(BagsActivationScanningActivity.this, "Validation error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

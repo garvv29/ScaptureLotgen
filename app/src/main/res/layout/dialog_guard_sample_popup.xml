@@ -170,7 +170,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:minHeight="50dp"
-                                android:hint="GS Bin"
+                                android:hint="GS-Bin"
                                 android:inputType="none"
                                 android:textColor="@color/textdata_color"
                                 android:textSize="16sp"
