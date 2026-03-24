@@ -995,7 +995,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             // If No is selected, proceed with activation without Guard Sample validation
             if (guardSampleId == R.id.rbGuardSampleNo) {
                 dialog.dismiss();
-                finalSubmit();
+                showConfirmationDialogBeforeFinalSubmit();
                 return;
             }
 
@@ -1017,12 +1017,29 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 return;
             }
 
-            // Guard Sample validation passed, now proceed with activation
+            // Guard Sample validation passed, now show confirmation before final submit
             dialog.dismiss();
-            finalSubmit();
+            showConfirmationDialogBeforeFinalSubmit();
         });
 
         dialog.show();
+    }
+
+    private void showConfirmationDialogBeforeFinalSubmit() {
+        final Dialog confirmDialog = new Dialog(BagsActivationScanningActivity.this);
+        confirmDialog.setContentView(R.layout.submit_confirm_alert);
+        Objects.requireNonNull(confirmDialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+
+        Button btnCancel = confirmDialog.findViewById(R.id.btnCancel);
+        Button btnSubmit = confirmDialog.findViewById(R.id.btnSubmit);
+
+        btnCancel.setOnClickListener(view -> confirmDialog.cancel());
+
+        btnSubmit.setOnClickListener(v1 -> {
+            confirmDialog.dismiss();
+            finalSubmit();
+        });
+        confirmDialog.show();
     }
 
     private void getWhListForPopup(AutoCompleteTextView dd_wh, AutoCompleteTextView dd_bin, 

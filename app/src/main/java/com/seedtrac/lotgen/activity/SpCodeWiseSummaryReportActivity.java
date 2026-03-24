@@ -196,7 +196,7 @@ public class SpCodeWiseSummaryReportActivity extends AppCompatActivity {
                                         item.getSpcodem(),        // spcodem
                                         item.getQty(),            // qty
                                         item.getBags(),           // bags
-                                        ""                        // lotno (empty for now)
+                                        item.getLots() != null ? String.valueOf(item.getLots()) : "0"  // lotno from Lots field
                                 );
                                 dataList.add(adapterData);
                             }

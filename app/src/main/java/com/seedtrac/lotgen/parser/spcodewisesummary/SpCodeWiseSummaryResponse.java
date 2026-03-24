@@ -55,6 +55,9 @@ public class SpCodeWiseSummaryResponse {
         @SerializedName("Qty")
         private Double qty;
 
+        @SerializedName("Lots")
+        private Integer lots;
+
         public String getCrop() {
             return crop;
         }
@@ -93,6 +96,14 @@ public class SpCodeWiseSummaryResponse {
 
         public void setQty(Double qty) {
             this.qty = qty;
+        }
+
+        public Integer getLots() {
+            return lots;
+        }
+
+        public void setLots(Integer lots) {
+            this.lots = lots;
         }
     }
 }

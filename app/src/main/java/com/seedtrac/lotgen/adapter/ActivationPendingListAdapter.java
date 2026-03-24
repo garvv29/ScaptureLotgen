@@ -64,6 +64,10 @@ public class ActivationPendingListAdapter extends RecyclerView.Adapter<Activatio
                 // Other types go to BagsActivationScanningActivity
                 Intent intent = new Intent(context, BagsActivationScanningActivity.class);
                 intent.putExtra("lotNumber", transaction.getLotno());
+                // Pass isPreprinted flag - true if trantype is NOT "Roll"
+                boolean isPreprinted = transaction.getTrantype() != null && 
+                                     !transaction.getTrantype().equalsIgnoreCase("Roll");
+                intent.putExtra("isPreprinted", isPreprinted);
                 context.startActivity(intent);
             }
         });
