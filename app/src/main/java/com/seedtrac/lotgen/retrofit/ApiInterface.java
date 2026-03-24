@@ -18,6 +18,7 @@ import com.seedtrac.lotgen.parser.lotrecsubmit.LotRecSubmitSuccess;
 import com.seedtrac.lotgen.parser.pendinglotreport.PendingLotListReportResponse;
 import com.seedtrac.lotgen.parser.printlabel.PrintLabelInfo;
 import com.seedtrac.lotgen.parser.recpendinglotlist.RecPendingLotListResponse;
+import com.seedtrac.lotgen.parser.spcodewisesummary.SpCodeWiseSummaryResponse;
 import com.seedtrac.lotgen.parser.submitsuccess.SubmitSuccessResponse;
 import com.seedtrac.lotgen.parser.whlist.WhListResponse;
 
@@ -152,5 +153,9 @@ public interface ApiInterface {
     Call<GsBarcodeInfoResponse> getGsBarcodeInfo(@Query("mobile1") String mobile, @Query("scode") String scode,
                                                  @Query("qrcode") String qrcode);
 
+    // SP Code Wise Summary Report
+    @GET("summeryrep.php")
+    Call<SpCodeWiseSummaryResponse> getSpCodeWiseSummaryReport(@Query("mobile1") String mobile1, @Query("scode") String scode,
+                                                                @Query("sdate") String sdate, @Query("edate") String edate);
 
 }

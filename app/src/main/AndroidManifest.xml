@@ -29,6 +29,9 @@
             android:name=".activity.GsSLOCShiftingActivity"
             android:exported="false" />
         <activity
+            android:name=".activity.SpCodeWiseSummaryReportActivity"
+            android:exported="false" />
+        <activity
             android:name=".activity.GaurdSampleActivity"
             android:exported="false" />
         <activity

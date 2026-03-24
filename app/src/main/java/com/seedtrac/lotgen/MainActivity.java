@@ -30,6 +30,7 @@ import com.seedtrac.lotgen.activity.LoadingSetupActivity;
 import com.seedtrac.lotgen.activity.LoadingTransactionsListActivity;
 import com.seedtrac.lotgen.activity.LotReceiveActivity;
 import com.seedtrac.lotgen.activity.LotReceiveListActivity;
+import com.seedtrac.lotgen.activity.SpCodeWiseSummaryReportActivity;
 import com.seedtrac.lotgen.activity.TrWisePendingLotListReportActivity;
 import com.seedtrac.lotgen.adapter.LoadingPendingListAdapter;
 import com.seedtrac.lotgen.adapter.LotReceiveListAdapter;
@@ -50,7 +51,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
-    private LinearLayout btnBagActivation, btnLoading, btnRecieve, btnGsSampling, btnGsSlocshifting;
+    private LinearLayout btnBagActivation, btnLoading, btnRecieve, btnGsSampling, btnGsSlocshifting, btnReport;
     private TextView tv_userName,tv_pendingActivations,tv_pendingLoading,tv_pendingRecieve,tvTotActivated,tvTotDisp;
     private TextView tvToolbarTitle;
     private User userData;
@@ -103,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
         btnRecieve = findViewById(R.id.btnRecieve);
         btnGsSampling = findViewById(R.id.btnGsSampling);
         btnGsSlocshifting = findViewById(R.id.btnGsSlocshifting);
+        btnReport = findViewById(R.id.btnReport);
         tv_userName = findViewById(R.id.tv_userName);
         tv_pendingActivations = findViewById(R.id.tv_pendingActivations);
         tv_pendingLoading = findViewById(R.id.tv_pendingLoading);
@@ -165,6 +167,11 @@ public class MainActivity extends AppCompatActivity {
 
         btnGsSlocshifting.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, GsSLOCShiftingActivity.class);
+            startActivity(intent);
+        });
+
+        btnReport.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SpCodeWiseSummaryReportActivity.class);
             startActivity(intent);
         });
     }

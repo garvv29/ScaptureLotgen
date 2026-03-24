@@ -29,6 +29,7 @@ import com.seedtrac.lotgen.MainActivity;
 import com.seedtrac.lotgen.R;
 import com.seedtrac.lotgen.adapter.SpCodeWiseSummaryReportAdapter;
 import com.seedtrac.lotgen.parser.login.User;
+import com.seedtrac.lotgen.parser.spcodewisesummary.SpCodeWiseSummaryResponse;
 import com.seedtrac.lotgen.retrofit.ApiInterface;
 import com.seedtrac.lotgen.retrofit.RetrofitClient;
 import com.seedtrac.lotgen.sessionmanager.SharedPreferences;
@@ -175,13 +176,47 @@ public class SpCodeWiseSummaryReportActivity extends AppCompatActivity {
 
         Log.e("Params:", userData.getMobile1() + "=" + userData.getScode() + "=" + fromDate + "=" + toDate);
 
-        // Note: Add the API method in ApiInterface
-        // Call<SpCodeWiseSummaryResponse> call = apiInterface.getSpCodeWiseSummaryReport(userData.getMobile1(), userData.getScode(), fromDate, toDate);
+        Call<SpCodeWiseSummaryResponse> call = apiInterface.getSpCodeWiseSummaryReport(userData.getMobile1(), userData.getScode(), fromDate, toDate);
 
-        // For now, showing sample implementation
-        // Replace with actual API call when endpoint is ready
-        Toast.makeText(this, "API endpoint needs to be created in ApiInterface", Toast.LENGTH_SHORT).show();
-        progressDialog.cancel();
+        call.enqueue(new Callback<SpCodeWiseSummaryResponse>() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void onResponse(@NonNull Call<SpCodeWiseSummaryResponse> call, @NonNull Response<SpCodeWiseSummaryResponse> response) {
+                progressDialog.cancel();
+                if (response.isSuccessful() && response.body() != null) {
+                    SpCodeWiseSummaryResponse reportResponse = response.body();
+                    if (reportResponse.getStatus() != null && reportResponse.getStatus()) {
+                        // Success - process data
+                        List<SpCodeWiseSummaryReportAdapter.SpCodeWiseSummaryData> dataList = new ArrayList<>();
+                        if (reportResponse.getData() != null && !reportResponse.getData().isEmpty()) {
+                            for (SpCodeWiseSummaryResponse.SpCodeWiseSummaryData item : reportResponse.getData()) {
+                                SpCodeWiseSummaryReportAdapter.SpCodeWiseSummaryData adapterData = new SpCodeWiseSummaryReportAdapter.SpCodeWiseSummaryData(
+                                        item.getCrop(),           // cropname
+                                        item.getSpcodef(),        // spcodef
+                                        item.getSpcodem(),        // spcodem
+                                        item.getQty(),            // qty
+                                        item.getBags(),           // bags
+                                        ""                        // lotno (empty for now)
+                                );
+                                dataList.add(adapterData);
+                            }
+                        }
+                        displayReportData(dataList);
+                    } else {
+                        Utils.showAlert(SpCodeWiseSummaryReportActivity.this, reportResponse.getMsg() != null ? reportResponse.getMsg() : "Error fetching report");
+                    }
+                } else {
+                    Utils.showAlert(SpCodeWiseSummaryReportActivity.this, "Error fetching report");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SpCodeWiseSummaryResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Log.e("Error", "RetrofitError : " + t.getMessage());
+                Utils.showAlert(SpCodeWiseSummaryReportActivity.this, "RetrofitError : " + t.getMessage());
+            }
+        });
     }
 
     @SuppressLint({"NotifyDataSetChanged"})

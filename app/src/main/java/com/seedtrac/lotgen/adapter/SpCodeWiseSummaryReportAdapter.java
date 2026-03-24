@@ -56,9 +56,13 @@ public class SpCodeWiseSummaryReportAdapter extends RecyclerView.Adapter<SpCodeW
             tvSrNo.setText(String.valueOf(srNo));
             tvCrop.setText(data.getCropname() != null ? data.getCropname() : "");
             tvSpCode.setText((data.getSpcodef() != null ? data.getSpcodef() : "") + " X " + (data.getSpcodem() != null ? data.getSpcodem() : ""));
-            tvQty.setText(String.format("%.3f", data.getQty()));
-            tvBags.setText(String.valueOf(data.getBags()));
-            tvLotNo.setText(data.getLotno() != null ? data.getLotno() : "");
+            if (data.getQty() != null) {
+                tvQty.setText(String.format("%.2f", data.getQty()));
+            } else {
+                tvQty.setText("0.00");
+            }
+            tvBags.setText(data.getBags() != null ? data.getBags() : "0");
+            tvLotNo.setText(data.getLotno() != null ? data.getLotno() : "-");
         }
     }
 
@@ -68,10 +72,10 @@ public class SpCodeWiseSummaryReportAdapter extends RecyclerView.Adapter<SpCodeW
         private String spcodef;
         private String spcodem;
         private Double qty;
-        private Integer bags;
+        private String bags;
         private String lotno;
 
-        public SpCodeWiseSummaryData(String cropname, String spcodef, String spcodem, Double qty, Integer bags, String lotno) {
+        public SpCodeWiseSummaryData(String cropname, String spcodef, String spcodem, Double qty, String bags, String lotno) {
             this.cropname = cropname;
             this.spcodef = spcodef;
             this.spcodem = spcodem;
@@ -85,7 +89,7 @@ public class SpCodeWiseSummaryReportAdapter extends RecyclerView.Adapter<SpCodeW
         public String getSpcodef() { return spcodef; }
         public String getSpcodem() { return spcodem; }
         public Double getQty() { return qty; }
-        public Integer getBags() { return bags; }
+        public String getBags() { return bags; }
         public String getLotno() { return lotno; }
 
         // Setters
@@ -93,7 +97,7 @@ public class SpCodeWiseSummaryReportAdapter extends RecyclerView.Adapter<SpCodeW
         public void setSpcodef(String spcodef) { this.spcodef = spcodef; }
         public void setSpcodem(String spcodem) { this.spcodem = spcodem; }
         public void setQty(Double qty) { this.qty = qty; }
-        public void setBags(Integer bags) { this.bags = bags; }
+        public void setBags(String bags) { this.bags = bags; }
         public void setLotno(String lotno) { this.lotno = lotno; }
     }
 }
