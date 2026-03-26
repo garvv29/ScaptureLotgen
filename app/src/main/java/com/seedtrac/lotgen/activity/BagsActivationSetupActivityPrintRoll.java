@@ -84,8 +84,13 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
-        });
-
+        });        
+        // Save flow stage: Currently in BagsActivationSetup
+        String lotNumber = getIntent().getStringExtra("lotNumber");
+        if (lotNumber != null) {
+            String flowStageKey = "flow_stage_" + lotNumber;
+            SharedPreferences.getInstance(this).storeObject(flowStageKey, "BagsActivationSetup");
+        }
         setupStatusBar();
         initViews();
         setupLotNumberDropdown();
@@ -100,8 +105,13 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
                 Intent intent;
                 
                 if ("PrintBagsLabelActivity".equals(sourceActivity)) {
+                    // Back to PrintBagsLabelActivity
                     intent = new Intent(BagsActivationSetupActivityPrintRoll.this, PrintBagsLabelActivity.class);
+                } else if ("LotReceiveListActivity".equals(sourceActivity)) {
+                    // ✅ Back to LotReceiveListActivity (from lot list edit)
+                    intent = new Intent(BagsActivationSetupActivityPrintRoll.this, LotReceiveListActivity.class);
                 } else {
+                    // Default: go to pending activation list
                     intent = new Intent(BagsActivationSetupActivityPrintRoll.this, BagActivationPendingListActivity.class);
                 }
                 startActivity(intent);
@@ -453,10 +463,17 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
                             String activationKey = "lot_activated_" + lot;
                             SharedPreferences.getInstance(BagsActivationSetupActivityPrintRoll.this).storeObject(activationKey, "true");
                             
+                            // ✅ Update flow stage to PrintLabel so next time lot is opened, it goes to PrintBagsLabelActivity
+                            String flowStageKey = "flow_stage_" + lot;
+                            SharedPreferences.getInstance(BagsActivationSetupActivityPrintRoll.this).storeObject(flowStageKey, "PrintLabel");
+                            
                             Toast.makeText(BagsActivationSetupActivityPrintRoll.this, activationSubmitResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            Intent intent = new Intent(getApplicationContext(), BagsActivationScanningActivity.class);
+                            
+                            // ✅ NEW FLOW: After setup, go to PrintBagsLabelActivity to print labels
+                            Intent intent = new Intent(getApplicationContext(), PrintBagsLabelActivity.class);
                             intent.putExtra("lotNumber", lot);
-                            intent.putExtra("isPreprinted", true); // Mark as preprinted case
+                            intent.putExtra("sourceActivity", "BagsActivationSetupPrintRoll");
+                            intent.putExtra("isPreprinted", false);
                             startActivity(intent);
                             finish();
                         } else {

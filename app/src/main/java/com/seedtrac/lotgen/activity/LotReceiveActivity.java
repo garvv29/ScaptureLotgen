@@ -117,6 +117,16 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh lot data when returning to this activity
+        // Ensures latest status from server when coming back from PrintBagsLabelActivity
+        if (lotnumber != null && !lotnumber.isEmpty()) {
+            getLotInfo(lotnumber);
+        }
+    }
+
     @SuppressLint("SetTextI18n")
     private void setTheme() {
 
@@ -153,6 +163,7 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
         binId = getIntent().getIntExtra("binid", 0);
         trid = getIntent().getIntExtra("trid", 0);
         rowid = getIntent().getIntExtra("rowid", 0);
+        String incomingTagType = getIntent().getStringExtra("tagType");
 
         userData = (User) com.seedtrac.lotgen.sessionmanager.SharedPreferences.getInstance(this).getObject(SharedPreferences.KEY_LOGIN_OBJ, User.class);
         if (lotnumber.isEmpty()){
@@ -168,6 +179,13 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
             dd_bin.setText(binname);
             etHarvestDate.setText(harvestdate);
             etNumberOfBags.setText(bagcount.toString());
+            if (incomingTagType != null && incomingTagType.equalsIgnoreCase("Roll")) {
+                rbPrintRollTags.setChecked(true);
+                rbPreprintedTags.setChecked(false);
+            } else if (incomingTagType != null && incomingTagType.equalsIgnoreCase("Preprinted")) {
+                rbPreprintedTags.setChecked(true);
+                rbPrintRollTags.setChecked(false);
+            }
             getLotInfo(lotnumber);
         }
 
@@ -317,7 +335,8 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                             Log.e("TagType Check", "updateLot - tagType: " + tagType);
                             if (tagType != null && tagType.equalsIgnoreCase("Roll")){
                                 Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
-                                Intent intent = new Intent(LotReceiveActivity.this, PrintBagsLabelActivity.class);
+                                // ✅ NEW FLOW: Go to BagsActivationSetupPrintRoll first for setup
+                                Intent intent = new Intent(LotReceiveActivity.this, BagsActivationSetupActivityPrintRoll.class);
                                 intent.putExtra("lotNumber", lot);
                                 intent.putExtra("harvestdate", harvestDate);
                                 intent.putExtra("bagcount", bagcount);
@@ -386,7 +405,8 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                             Log.e("TagType Check", "submitForm - tagType: " + tagType);
                             Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
                             if (tagType != null && tagType.equalsIgnoreCase("Roll")){
-                                Intent intent = new Intent(LotReceiveActivity.this, PrintBagsLabelActivity.class);
+                                // ✅ NEW FLOW: Go to BagsActivationSetupPrintRoll first for setup
+                                Intent intent = new Intent(LotReceiveActivity.this, BagsActivationSetupActivityPrintRoll.class);
                                 intent.putExtra("lotNumber", lot);
                                 intent.putExtra("harvestdate", harvestDate);
                                 intent.putExtra("bagcount", bagcount);

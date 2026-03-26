@@ -240,63 +240,64 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
     private void init(){
         getLotInfo();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(this,
-                            Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-
-                ActivityCompat.requestPermissions(
-                        this,
-                        new String[]{
-                                Manifest.permission.BLUETOOTH_CONNECT,
-                                Manifest.permission.BLUETOOTH_SCAN
-                        }, BT_PERMISSION_REQUEST
-                );
-            } else {
-                bluetoothGranted();
-            }
-
-        } else {
-            // Android 11 and below
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-                ActivityCompat.requestPermissions(
-                        this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        BT_PERMISSION_REQUEST
-                );
-            } else {
-                bluetoothGranted();
-            }
-        }
+        // TESTING MODE: Bluetooth permission checks disabled
+        // if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        //     // Android 12+
+        //     if (ContextCompat.checkSelfPermission(this,
+        //             Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED ||
+        //             ContextCompat.checkSelfPermission(this,
+        //                     Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+        //
+        //         ActivityCompat.requestPermissions(
+        //                 this,
+        //                 new String[]{
+        //                         Manifest.permission.BLUETOOTH_CONNECT,
+        //                         Manifest.permission.BLUETOOTH_SCAN
+        //                 }, BT_PERMISSION_REQUEST
+        //         );
+        //     } else {
+        //         bluetoothGranted();
+        //     }
+        //
+        // } else {
+        //     // Android 11 and below
+        //     if (ContextCompat.checkSelfPermission(this,
+        //             Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        //
+        //         ActivityCompat.requestPermissions(
+        //                 this,
+        //                 new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+        //                 BT_PERMISSION_REQUEST
+        //         );
+        //     } else {
+        //         bluetoothGranted();
+        //     }
+        // }
 
         btnAdd.setOnClickListener(v -> {
-            //getWeighFromBlutooth();
-            if(socket!=null){
-                if (socket.isConnected()){
-                    getWeighFromBlutooth();
-                }else {
-                    Toast.makeText(this, "Bluetooth not connected", Toast.LENGTH_SHORT).show();
-                }
-            }
+            // TESTING MODE: Bypass Bluetooth connection check, directly open weight dialog
+            getWeighFromBlutooth();
         });
 
         bt_con.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("SetTextI18n")
             @Override
             public void onClick(View v) {
-                if (socket!=null && socket.isConnected()){
-                    bt_con.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_bt, 0, 0, 0);
-                    bt_con.setBackgroundColor(getResources().getColor(R.color.light_grey));
-                    bt_con.setText("Offline");
-                    closeConnection(socket);
-                }else {
-                    establishBluetooth();
-                }
+                // TESTING MODE: Show test mode status instead of Bluetooth connection
+                Toast.makeText(PrintBagsLabelActivity.this, "🧪 Bluetooth bypassed - TEST MODE ACTIVE", Toast.LENGTH_SHORT).show();
+                bt_con.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_bt, 0, 0, 0);
+                bt_con.setBackgroundColor(getResources().getColor(R.color.light_green));
+                bt_con.setText("TEST MODE");
             }
+            // ===== Original Bluetooth code (commented) =====
+            // if (socket!=null && socket.isConnected()){
+            //     bt_con.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_bt, 0, 0, 0);
+            //     bt_con.setBackgroundColor(getResources().getColor(R.color.light_grey));
+            //     bt_con.setText("Offline");
+            //     closeConnection(socket);
+            // }else {
+            //     establishBluetooth();
+            // }
         });
 
         btnSubmit.setOnClickListener(new View.OnClickListener() {
@@ -317,8 +318,10 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 }*/
                 else {
                     String sourceActivity = getIntent().getStringExtra("sourceActivity");
-                    if ("LotReceiveActivity".equals(sourceActivity)) {
-                        // Print Roll flow - show Guard Sample popup
+                    if ("LotReceiveActivity".equals(sourceActivity) || "BagsActivationSetupPrintRoll".equals(sourceActivity)) {
+                        String flowStageKey = "flow_stage_" + lotnumber;
+                        SharedPreferences.getInstance(PrintBagsLabelActivity.this).storeObject(flowStageKey, "GuardSample");
+                        
                         showGuardSamplePopup();
                     } else {
                         // Regular flow - direct submit
@@ -672,7 +675,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                     System.out.print("Response : " + lotInfoResponse);
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
-                            // ✅ FIX: Check if data list is not null and not empty before accessing
+                            // FIX: Check if data list is not null and not empty before accessing
                             if (lotInfoResponse.getData() != null && !lotInfoResponse.getData().isEmpty()) {
                                 lotInfoData = lotInfoResponse.getData().get(0);
                                 tvLotNumber.setText(lotInfoData.getLotno());
@@ -814,16 +817,47 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
         dialog.setCanceledOnTouchOutside(false);
 
+        // ========== TESTING MODE ==========
+        // Allow manual weight entry by clicking on weight field
+        tv_weight.setOnClickListener(v -> {
+            // Create an EditText dialog for manual weight input
+            EditText etManualWeight = new EditText(PrintBagsLabelActivity.this);
+            etManualWeight.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            etManualWeight.setText(tv_weight.getText().toString());
+            etManualWeight.setSelection(etManualWeight.getText().length());
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(PrintBagsLabelActivity.this);
+            builder.setTitle("Enter Weight (kg) - TEST MODE");
+            builder.setView(etManualWeight);
+            builder.setPositiveButton("OK", (dialog1, which) -> {
+                String weight = etManualWeight.getText().toString().trim();
+                if (!weight.isEmpty()) {
+                    tv_weight.setText(weight);
+                } else {
+                    Toast.makeText(PrintBagsLabelActivity.this, "Please enter a valid weight", Toast.LENGTH_SHORT).show();
+                }
+            });
+            builder.setNegativeButton("Cancel", null);
+            builder.show();
+        });
+
+        // Show message appropriate for testing mode
+        tv_weight.setText("0.000");
+        tv_message.setVisibility(View.VISIBLE);
+        tv_message.setText("🧪 TEST MODE - Click weight field to enter manually");
+        tv_message.setTextColor(Color.parseColor("#FF9800"));
+
+        // =========== Original Bluetooth code (commented) ===========
         // Get weight from Bluetooth
-        if (weightData != null && !weightData.isEmpty()) {
-            String[] actualWt = weightData.split(" ");
-            actualWeight = String.format("%.3f", Double.parseDouble(actualWt[0]));
-            tv_weight.setText(actualWeight);
-            tv_message.setVisibility(View.GONE);
-        } else {
-            tv_message.setVisibility(View.VISIBLE);
-            tv_message.setText("Waiting for weight data...");
-        }
+        // if (weightData != null && !weightData.isEmpty()) {
+        //     String[] actualWt = weightData.split(" ");
+        //     actualWeight = String.format("%.3f", Double.parseDouble(actualWt[0]));
+        //     tv_weight.setText(actualWeight);
+        //     tv_message.setVisibility(View.GONE);
+        // } else {
+        //     tv_message.setVisibility(View.VISIBLE);
+        //     tv_message.setText("Waiting for weight data...");
+        // }
 
         tv_cropName.setText(lotInfoData.getCropname());
         tv_varietyName.setText(lotInfoData.getSpcodef()+"\n"+lotInfoData.getSpcodem());
@@ -831,6 +865,10 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         tv_lotNo.setText(lotInfoData.getLotno());
 
         btnSubmit.setOnClickListener(view -> {
+            handler.removeCallbacks(updateTextViewRunnable);
+            if (socket!=null && socket.isConnected()){
+                closeConnection(socket);
+            }
             submitAndPrint(tv_weight.getText().toString());
             dialog.dismiss();
         });
@@ -963,7 +1001,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
     private void printTSCLabelWifi(LabelData data) {
 
-        String printerIp = "192.168.31.105";
+        String printerIp = "172.168.7.24";
         int port = 9100;
 
         String tspl = String.format(
@@ -975,28 +1013,62 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                         "DENSITY 15\n" +
                         "SETENERGY 11\n" +
 
-                        "TEXT 90,124,\"3\",0,1,1,\"------------X------------\"\n" +
+                        "TEXT 50,124,\"3\",0,1,1,\"------------X------------\"\n" +
 
-                        "TEXT 240,180,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 160,270,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 160,360,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 40,450,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 140,540,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 190,630,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 170,720,\"3\",0,3,3,\"%s\"\n" +
-                        "QRCODE 150,810,L,13,A,0,M2,S7,\"%s\"\n" +
+                        // First Section (gap 60)
+                        "TEXT 200,180,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 120,240,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 120,300,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 20,360,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 100,420,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 150,480,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 130,540,\"3\",0,2,2,\"%s\"\n" +
+                        "QRCODE 80,600,L,9,A,0,M2,S5,\"%s\"\n" +
 
-                        "TEXT 40,1950,\"3\",0,1,1,\"------------------------------\"\n" +
+                        // Divider
+                        "TEXT 20,1480,\"3\",0,1,1,\"------------------------------\"\n" +
 
-                        "TEXT 240,2920,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 160,3010,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 160,3100,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 40,3190,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 140,3280,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 190,3370,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 170,3460,\"3\",0,3,3,\"%s\"\n" +
-                        "QRCODE 150,3550,L,13,A,0,M2,S7,\"%s\"\n" +
+                        // Second Section
+                        "TEXT 200,2040,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 120,2090,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 120,2140,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 20,2190,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 100,2240,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 150,2300,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 130,2360,\"3\",0,2,2,\"%s\"\n" +
+                        "QRCODE 80,2420,L,9,A,0,M2,S5,\"%s\"\n" +
+
                         "PRINT 1,1\n",
+//                "SIZE 50 mm,330 mm\n" +
+//                        "GAP 0,0\n" +
+//                        "DIRECTION 1\n" +
+//                        "CLS\n" +
+//                        "SPEED 3\n" +
+//                        "DENSITY 15\n" +
+//                        "SETENERGY 11\n" +
+//
+//                        "TEXT 90,124,\"3\",0,1,1,\"------------X------------\"\n" +
+//
+//                        "TEXT 240,180,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 160,270,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 160,360,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 40,450,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 140,540,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 190,630,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 170,720,\"3\",0,3,3,\"%s\"\n" +
+//                        "QRCODE 150,810,L,13,A,0,M2,S7,\"%s\"\n" +
+//
+//                        "TEXT 40,1950,\"3\",0,1,1,\"------------------------------\"\n" +
+//
+//                        "TEXT 240,2920,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 160,3010,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 160,3100,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 40,3190,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 140,3280,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 190,3370,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 170,3460,\"3\",0,3,3,\"%s\"\n" +
+//                        "QRCODE 150,3550,L,13,A,0,M2,S7,\"%s\"\n" +
+//                        "PRINT 1,1\n",
 
                 // -------- First Label --------
                 data.crop,
@@ -1069,6 +1141,24 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         // Set lot number
         etLotNumber.setText(lotnumber);
 
+        // Auto-validate barcode when scanned (same as BagsActivationScanningActivity)
+        etBarcodeScan.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String barcode = s.toString().trim();
+                // Auto-validate when barcode length is 8, 11, or 9 (same as BagsActivationScanningActivity)
+                if (barcode.length() == 8 || barcode.length() == 11 || barcode.length() == 9) {
+                    validateGuardSampleBarcode(barcode, dialog);
+                }
+            }
+        });
+
         // Handle Guard Sample Yes/No selection
         rgGuardSample.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.rbGuardSampleYes) {
@@ -1132,6 +1222,40 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         });
 
         dialog.show();
+    }
+
+    // New method: Validate barcode automatically when scanned
+    private void validateGuardSampleBarcode(String barcode, Dialog dialog) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        
+        Log.d("POPUP_VALIDATE", "Barcode: " + barcode + " (len=" + barcode.length() + ")");
+        
+        Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), barcode);
+        call.enqueue(new Callback<SubmitSuccessResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
+                if (response.isSuccessful()) {
+                    SubmitSuccessResponse submitResponse = response.body();
+                    if (submitResponse != null && submitResponse.getStatus()) {
+                        Log.d("POPUP_VALIDATE", "Barcode Valid");
+                        Toast.makeText(PrintBagsLabelActivity.this, "Barcode validated successfully", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Log.d("POPUP_VALIDATE", "Barcode Invalid: " + submitResponse.getMsg());
+                        Toast.makeText(PrintBagsLabelActivity.this, "Invalid barcode: " + submitResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Log.d("POPUP_VALIDATE", "HTTP Error: " + response.code());
+                    Toast.makeText(PrintBagsLabelActivity.this, "Barcode validation failed", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
+                // Silently fail on network errors (barcode still being entered)
+                // Don't show error toast for real-time validation
+                Log.d("BarcodeValidation", "Validation check error: " + t.getClass().getSimpleName() + " - " + t.getMessage());
+            }
+        });
     }
 
     private void getWhListForPopup(AutoCompleteTextView dd_wh, AutoCompleteTextView dd_bin, 
@@ -1225,6 +1349,17 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
+        // LOG ALL PARAMS - POPUP SUBMISSION
+        Log.e("POPUP_SUBMIT", "===== GUARD SAMPLE POPUP SUBMISSION =====");
+        Log.e("POPUP_SUBMIT", "Lot Number: " + lot);
+        Log.e("POPUP_SUBMIT", "Barcode: " + barcode);
+        Log.e("POPUP_SUBMIT", "Farmer Handover: " + farmerHandover);
+        Log.e("POPUP_SUBMIT", "Mobile: " + userData.getMobile1());
+        Log.e("POPUP_SUBMIT", "SCode: " + userData.getScode());
+        Log.e("POPUP_SUBMIT", "Calling API: checkGsBarcode (gsbarrcodechk.php)");
+        Log.e("POPUP_SUBMIT", "API Params: mobile1=" + userData.getMobile1() + ", scode=" + userData.getScode() + ", qrcode=" + barcode);
+        Log.e("POPUP_SUBMIT", "=====================================");
+
         Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), barcode);
         call.enqueue(new Callback<SubmitSuccessResponse>() {
             @Override
@@ -1234,23 +1369,37 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                     if (submitResponse != null && submitResponse.getStatus()) {
                         dialog.dismiss();
                         progressDialog.cancel();
-                        Log.e("GuardSample", "Barcode: "+barcode+", Farmer Handover: "+farmerHandover);
-                        // Now submit the print label
-                        finalSubmit();
+                        Log.d("POPUP_SUBMIT", "Barcode validated");
+                        
+                        String sourceActivity = getIntent().getStringExtra("sourceActivity");
+                        if ("BagsActivationSetupPrintRoll".equals(sourceActivity)) {
+                            // Print Roll flow - go to Scanning
+                            Log.d("POPUP_ROUTING", "To BagsActivationScanningActivity");
+                            Intent intent = new Intent(PrintBagsLabelActivity.this, BagsActivationScanningActivity.class);
+                            intent.putExtra("lotNumber", lotnumber);
+                            intent.putExtra("isPreprinted", false);
+                            startActivity(intent);
+                            finish();
+                        } else if ("LotReceiveActivity".equals(sourceActivity)) {
+                            // Legacy flow - finalSubmit
+                            Log.d("POPUP_ROUTING", "Calling finalSubmit");
+                            finalSubmit();
+                        }
                     } else {
                         progressDialog.cancel();
-                        Utils.showAlert(PrintBagsLabelActivity.this, "Invalid barcode");
+                        Utils.showAlert(PrintBagsLabelActivity.this, submitResponse.getMsg());
                     }
                 } else {
                     progressDialog.cancel();
-                    Utils.showAlert(PrintBagsLabelActivity.this, "Failed to validate barcode");
+                    Log.e("POPUP_RESPONSE", "HTTP Error - Code: " + response.code());
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
-                Utils.showAlert(PrintBagsLabelActivity.this, "Error: " + t.getMessage());
+                // Silent fail on network errors - don't show technical messages
+                Log.e("POPUP_ERROR", "Network Error: " + t.getClass().getSimpleName());
             }
         });
     }

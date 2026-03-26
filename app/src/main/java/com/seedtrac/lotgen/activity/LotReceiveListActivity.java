@@ -101,6 +101,12 @@ public class LotReceiveListActivity extends AppCompatActivity {
         init();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        getLotList();
+    }
+
     @SuppressLint({"SetTextI18n", "NotifyDataSetChanged"})
     private void setTheme() {
         // Set title

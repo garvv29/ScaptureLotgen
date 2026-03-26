@@ -126,6 +126,13 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        
+        // Save flow stage: Currently in BagsActivationScanning
+        lotNumber = getIntent().getStringExtra("lotNumber");
+        if (lotNumber != null) {
+            String flowStageKey = "flow_stage_" + lotNumber;
+            SharedPreferences.getInstance(this).storeObject(flowStageKey, "BagsActivationScanning");
+        }
 
         Window window = getWindow();
         // Change background color
@@ -576,6 +583,9 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
+        
+        Log.d("SCANNING_SUBMIT", "SCode: " + userData.getScode() + ", TRId: " + (lotInfoData != null ? lotInfoData.getTrid() : "NULL"));
+        
         Log.e("Params:", userData.getScode()+"="+lotInfoData.getTrid());
         Call<SubmitSuccessResponse> call =apiInterface.actSetupFinalSubmit(userData.getScode(), lotInfoData.getTrid().toString());
         call.enqueue(new Callback<>() {
@@ -587,6 +597,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                     System.out.print("Response : " + submitSuccessResponse);
                     if (submitSuccessResponse != null) {
                         if (submitSuccessResponse.getStatus()) {
+                            Log.d("SCANNING_SUBMIT", "Activation complete");
                             Toast.makeText(BagsActivationScanningActivity.this, submitSuccessResponse.getMsg(), Toast.LENGTH_SHORT).show();
                             progressDialog.cancel();
                             
@@ -616,8 +627,8 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
-                Log.e("Error", "RetrofitError : " + t.getMessage());
-                Utils.showAlert(BagsActivationScanningActivity.this, "RetrofitError : " + t.getMessage());
+                // Silent fail on network errors - don't show technical messages
+                Log.e("SCANNING_ERROR", "Network Error: " + t.getClass().getSimpleName());
             }
         });
     }
@@ -741,7 +752,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                     System.out.print("Response : " + lotInfoResponse);
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
-                            // ✅ FIX: Check if data list is not null and not empty before accessing
+                            // FIX: Check if data list is not null and not empty before accessing
                             if (lotInfoResponse.getData() != null && !lotInfoResponse.getData().isEmpty()) {
                                 lotInfoData = lotInfoResponse.getData().get(0);
                                 tvLotNumber.setText(lotInfoData.getLotno());
@@ -1194,7 +1205,9 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
      */
     private void validateBarcodeForActivationPopup(String scanResult) {
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
-        Log.e("BarcodeValidation", "Validating barcode: " + scanResult);
+        
+        // LOG BARCODE VALIDATION PARAMS
+        Log.d("SCANNING_VALIDATE", "Barcode: " + scanResult + " (Mobile: " + userData.getMobile1() + ")");
         
         Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), scanResult);
         call.enqueue(new Callback<SubmitSuccessResponse>() {
@@ -1205,12 +1218,12 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                     if (validationResponse != null) {
                         if (validationResponse.getStatus()) {
                             // Valid barcode - show success message
+                            Log.d("SCANNING_VALIDATE", "Valid barcode");
                             Toast.makeText(BagsActivationScanningActivity.this, "Barcode Valid", Toast.LENGTH_SHORT).show();
-                            Log.e("BarcodeValidation", "Barcode validation successful for: " + scanResult);
                         } else {
                             // Invalid barcode - show error message
+                            Log.d("SCANNING_VALIDATE", "Invalid barcode");
                             Toast.makeText(BagsActivationScanningActivity.this, validationResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            Log.e("BarcodeValidation", "Barcode validation failed: " + validationResponse.getMsg());
                         }
                     }
                 } else {
@@ -1220,8 +1233,8 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
-                Log.e("BarcodeValidation", "API call failed: " + t.getMessage());
-                Toast.makeText(BagsActivationScanningActivity.this, "Validation error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e("BarcodeValidation", "Validation error: " + t.getClass().getSimpleName());
+                // Silently log validation errors
             }
         });
     }
