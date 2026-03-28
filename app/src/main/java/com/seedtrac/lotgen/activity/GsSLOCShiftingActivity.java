@@ -280,8 +280,8 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
         dialog.setContentView(R.layout.submit_confirm_alert);
         Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
         dialog.findViewById(R.id.btnSubmit).setOnClickListener(v -> {
-            if (scannedBarcodes.isEmpty() || whId==0 || binId==0 ){
-                Utils.showAlert(GsSLOCShiftingActivity.this, "Please scan at least one barcode and select WH, Bin");
+            if (scannedBarcodes.isEmpty() || whId==0 || binId==0 || subbinId==0){
+                Utils.showAlert(GsSLOCShiftingActivity.this, "Please scan at least one barcode and select WH, Bin & SubBin");
                 return;
             }
 

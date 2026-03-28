@@ -251,7 +251,7 @@ public class GaurdSampleActivity extends AppCompatActivity {
         /*TextView text = dialog.findViewById(R.id.tv_message);
         text.setText("Check the data entered before submission, once submitted it cannot be edited.\nAre you sure you want to submit?");*/
         dialog.findViewById(R.id.btnSubmit).setOnClickListener(v -> {
-            if (lot.isEmpty() || barcode.isEmpty() || lot.length()!=6 || whId==0 || binId==0){
+            if (lot.isEmpty() || barcode.isEmpty() || lot.length()!=6 || whId==0 || binId==0 || subbinId==0){
                 Utils.showAlert(GaurdSampleActivity.this, "Please fill all the fields");
                 return;
             }

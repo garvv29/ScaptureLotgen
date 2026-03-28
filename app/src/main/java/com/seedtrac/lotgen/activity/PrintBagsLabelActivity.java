@@ -1241,7 +1241,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
     // Helper method to update submit button state
     @SuppressLint("SetTextI18n")
     private void updateSubmitButtonState(MaterialButton btnSubmit, boolean isBarcodeValid, Integer whId, Integer binId, Integer subbinId) {
-        boolean allFieldsValid = whId != null && binId != null;
+        boolean allFieldsValid = whId != null && binId != null && subbinId != null;
         btnSubmit.setEnabled(allFieldsValid);
         btnSubmit.setAlpha(allFieldsValid ? 1.0f : 0.5f);
     }

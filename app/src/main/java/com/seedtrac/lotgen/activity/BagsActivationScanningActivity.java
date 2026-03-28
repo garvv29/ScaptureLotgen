@@ -1076,7 +1076,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
     // Helper method to update submit button state for activation popup
     @SuppressLint("SetTextI18n")
     private void updateSubmitButtonStateForActivation(MaterialButton btnSubmit, boolean isBarcodeValid, Integer whId, Integer binId, Integer subbinId) {
-        boolean allFieldsValid = isBarcodeValid && whId != null && binId != null;
+        boolean allFieldsValid = isBarcodeValid && whId != null && binId != null && subbinId != null;
         btnSubmit.setEnabled(allFieldsValid);
         btnSubmit.setAlpha(allFieldsValid ? 1.0f : 0.5f);
     }
