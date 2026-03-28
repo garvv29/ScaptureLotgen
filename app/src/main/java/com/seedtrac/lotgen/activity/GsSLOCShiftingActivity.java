@@ -274,7 +274,6 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
             }
         });
     }
-
     private void validateAndSubmit() {
         Dialog dialog = new Dialog(GsSLOCShiftingActivity.this);
         dialog.setContentView(R.layout.submit_confirm_alert);
