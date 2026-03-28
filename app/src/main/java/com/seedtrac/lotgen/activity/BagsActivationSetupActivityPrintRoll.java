@@ -151,8 +151,7 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
 
         userData = (User) SharedPreferences.getInstance(this).getObject(SharedPreferences.KEY_LOGIN_OBJ, User.class);
         lotNumber = getIntent().getStringExtra("lotNumber");
-        
-        // ✅ FIX: Add null validation before using lotNumber
+
         if (lotNumber != null && !lotNumber.isEmpty()) {
             actLotNumber.setText(lotNumber);
             getLotInfo(lotNumber);
@@ -246,12 +245,28 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
     }
 
     private void getRemarksList() {
+        Log.e("REMARKS_LIST_START", "================================");
+        Log.e("REMARKS_LIST_START", "getRemarksList() called");
+        Log.e("REMARKS_LIST_START", "selectedCropName: " + selectedCropName);
+        Log.e("REMARKS_LIST_START", "userData SCode: " + (userData != null ? userData.getScode() : "NULL"));
+        
+        if (userData == null) {
+            Log.e("REMARKS_LIST_ERROR", "userData is NULL!");
+            Utils.showAlert(this, "Error: User data not loaded");
+            return;
+        }
+        
+        if (selectedCropName == null || selectedCropName.isEmpty()) {
+            Log.e("REMARKS_LIST_ERROR", "selectedCropName is NULL or empty!");
+            Utils.showAlert(this, "Error: Crop name not available");
+            return;
+        }
+        
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Loading...");
+        progressDialog.setMessage("Loading remarks...");
         progressDialog.show();
-        Log.e("Params:", userData.getMobile1()+"="+userData.getScode()+"="+selectedCropName);
-        Log.e("CropName", "Crop name passed to API: " + selectedCropName);
+        Log.e("REMARKS_LIST_API", "Calling getRemarksList API with scode=" + userData.getScode() + ", cropName=" + selectedCropName);
         Call<ActRemarksListResponse> call =apiInterface.getRemarksList(userData.getScode(), selectedCropName);
         call.enqueue(new Callback<>() {
             @SuppressLint("NotifyDataSetChanged")
@@ -288,8 +303,11 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<ActRemarksListResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
-                Log.e("Error", "RetrofitError : " + t.getMessage());
-                Utils.showAlert(BagsActivationSetupActivityPrintRoll.this,"RetrofitError : " + t.getMessage());
+                Log.e("REMARKS_LIST_FAILURE", "============ GET REMARKS LIST FAILED ============");
+                Log.e("REMARKS_LIST_FAILURE", "Error: " + t.getMessage());
+                Log.e("REMARKS_LIST_FAILURE", "Exception Type: " + t.getClass().getSimpleName());
+                t.printStackTrace();
+                Utils.showAlert(BagsActivationSetupActivityPrintRoll.this,"❌ Remarks Error:\n" + t.getMessage());
                 //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
@@ -508,11 +526,28 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
     }
 
     private void getLotInfo(String lotNumber) {
+        Log.e("LOT_INFO_START", "================================");
+        Log.e("LOT_INFO_START", "getLotInfo() called with lotNumber: " + lotNumber);
+        Log.e("LOT_INFO_START", "userData Mobile: " + (userData != null ? userData.getMobile1() : "NULL"));
+        Log.e("LOT_INFO_START", "userData SCode: " + (userData != null ? userData.getScode() : "NULL"));
+        
+        if (userData == null) {
+            Log.e("LOT_INFO_ERROR", "userData is NULL!");
+            Utils.showAlert(this, "Error: User data not loaded");
+            return;
+        }
+        
+        if (lotNumber == null || lotNumber.isEmpty()) {
+            Log.e("LOT_INFO_ERROR", "lotNumber is NULL or empty!");
+            Utils.showAlert(this, "Error: Lot number not provided");
+            return;
+        }
+        
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Loading...");
+        progressDialog.setMessage("Loading lot info...");
         progressDialog.show();
-        Log.e("Params:", userData.getMobile1()+"="+userData.getScode()+"="+lotNumber);
+        Log.e("LOT_INFO_API", "Calling getLotInfo API with mobile=" + userData.getMobile1() + ", scode=" + userData.getScode() + ", lotNumber=" + lotNumber);
         Call<LotInfoResponse> call =apiInterface.getLotInfo(userData.getMobile1(), userData.getScode(), lotNumber);
         call.enqueue(new Callback<>() {
             @SuppressLint({"NotifyDataSetChanged", "SetTextI18n"})
@@ -565,8 +600,11 @@ public class BagsActivationSetupActivityPrintRoll extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<LotInfoResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
-                Log.e("Error", "RetrofitError : " + t.getMessage());
-                Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage());
+                Log.e("LOT_INFO_FAILURE", "============ GET LOT INFO FAILED ============");
+                Log.e("LOT_INFO_FAILURE", "Error: " + t.getMessage());
+                Log.e("LOT_INFO_FAILURE", "Exception Type: " + t.getClass().getSimpleName());
+                t.printStackTrace();
+                Utils.showAlert(BagsActivationSetupActivityPrintRoll.this, "❌ Lot Info Error:\n" + t.getMessage());
                 //Toast.makeText(BagsActivationSetupActivityPrintRoll.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });

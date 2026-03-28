@@ -42,8 +42,6 @@ import com.seedtrac.lotgen.parser.binlist.BinListResponse;
 import com.seedtrac.lotgen.parser.binlist.Datum;
 import com.seedtrac.lotgen.parser.gsbarcodeinfo.GsBarcodeInfoResponse;
 import com.seedtrac.lotgen.parser.login.User;
-import com.seedtrac.lotgen.parser.lotinfo.LotInfoData;
-import com.seedtrac.lotgen.parser.lotinfo.LotInfoResponse;
 import com.seedtrac.lotgen.parser.submitsuccess.SubmitSuccessResponse;
 import com.seedtrac.lotgen.parser.whlist.Data;
 import com.seedtrac.lotgen.parser.whlist.WhListResponse;
@@ -78,6 +76,8 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
     private Integer whId=0;
     private List<Datum> binlist=new ArrayList<>();
     private Integer binId=0;
+    private List<com.seedtrac.lotgen.parser.subbinlist.Datum1> subbinlist=new ArrayList<>();
+    private Integer subbinId=0;
     private String lotnumber, harvestdate, whname, binname;
     private Integer bagcount;
     private TextView tvFarmerName, tvFarmerVillage,tvBags, tvTotalQty, tvHarvestDate;
@@ -161,6 +161,13 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
         dd_bin.setOnItemClickListener((parent, view, position, id) -> {
             Datum selectedBin = binlist.get(position);
             binId = selectedBin.getBinid();
+            subbinId = 0;  // Reset subbin when bin changes
+            dd_subbin.setText("");
+            getSubbinList();
+        });
+        dd_subbin.setOnItemClickListener((parent, view, position, id) -> {
+            com.seedtrac.lotgen.parser.subbinlist.Datum1 selectedSubbin = subbinlist.get(position);
+            subbinId = selectedSubbin.getSubbinid();
         });
 
         etBarcode.addTextChangedListener(new TextWatcher() {
@@ -273,8 +280,8 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
         dialog.setContentView(R.layout.submit_confirm_alert);
         Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
         dialog.findViewById(R.id.btnSubmit).setOnClickListener(v -> {
-            if (scannedBarcodes.isEmpty() || whId==0 || binId==0){
-                Utils.showAlert(GsSLOCShiftingActivity.this, "Please scan at least one barcode and select WH & Bin");
+            if (scannedBarcodes.isEmpty() || whId==0 || binId==0 ){
+                Utils.showAlert(GsSLOCShiftingActivity.this, "Please scan at least one barcode and select WH, Bin");
                 return;
             }
 
@@ -308,8 +315,8 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
-        Log.e("Params:",userData.getMobile1()+"="+ userData.getScode()+"="+ barcodeList.toString()+"="+whId.toString()+"="+ binId.toString());
-        Call<SubmitSuccessResponse> call =apiInterface.updateGsSLOCDetails(userData.getMobile1(), userData.getScode(), barcodeList.toString(), whId.toString(), binId.toString());
+        Log.e("Params:",userData.getMobile1()+"="+ userData.getScode()+"="+ barcodeList.toString()+"="+whId.toString()+"="+ binId.toString()+"="+subbinId.toString());
+        Call<SubmitSuccessResponse> call =apiInterface.updateGsSLOCDetails(userData.getMobile1(), userData.getScode(), barcodeList.toString(), whId.toString(), binId.toString(), subbinId.toString());
         call.enqueue(new Callback<>() {
             @SuppressLint({"NotifyDataSetChanged", "SetTextI18n"})
             @Override
@@ -437,6 +444,10 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
                             dd_bin.setAdapter(adapter);
                             // Show dropdown on click (even without typing)
                             dd_bin.setOnClickListener(v -> dd_bin.showDropDown());
+                            // Load subbin list when bin is loaded
+                            if (!binlist.isEmpty()) {
+                                getSubbinList();
+                            }
                         } else {
                             Utils.showAlert(GsSLOCShiftingActivity.this, binListResponse.getMsg());
                             //Toast.makeText(BagsActivationSetupActivity.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
@@ -464,6 +475,57 @@ public class GsSLOCShiftingActivity extends AppCompatActivity {
                 Log.e("Error", "RetrofitError : " + t.getMessage());
                 Utils.showAlert(GsSLOCShiftingActivity.this,"RetrofitError : " + t.getMessage());
                 //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void getSubbinList() {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+        Log.e("Params:", userData.getMobile1()+"="+userData.getScode()+"="+whId+"="+binId);
+        Call<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse> call = apiInterface.getSubbinList(userData.getMobile1(), userData.getScode(), whId, binId);
+        call.enqueue(new Callback<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse>() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse> response) {
+                if (response.isSuccessful()) {
+                    com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse subbinListResponse = response.body();
+                    if (subbinListResponse != null && subbinListResponse.getStatus()) {
+                        subbinlist = subbinListResponse.getData();
+                        List<String> subbinNamesList = new ArrayList<>();
+                        for (com.seedtrac.lotgen.parser.subbinlist.Datum1 subbin : subbinlist) {
+                            subbinNamesList.add(subbin.getSubbinname());
+                        }
+                        ArrayAdapter<String> adapter = new ArrayAdapter<>(GsSLOCShiftingActivity.this, 
+                            android.R.layout.simple_dropdown_item_1line, subbinNamesList);
+                        dd_subbin.setAdapter(adapter);
+                        dd_subbin.setOnClickListener(v -> dd_subbin.showDropDown());
+                        progressDialog.cancel();
+                    } else {
+                        progressDialog.cancel();
+                        Utils.showAlert(GsSLOCShiftingActivity.this, "Failed to load SubBin list");
+                    }
+                } else {
+                    progressDialog.cancel();
+                    if (response.errorBody() != null) {
+                        try {
+                            JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
+                            String msg = jsonObj.getString("msg");
+                            Utils.showAlert(GsSLOCShiftingActivity.this, msg);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Log.e("Error", "RetrofitError : " + t.getMessage());
+                Utils.showAlert(GsSLOCShiftingActivity.this, "RetrofitError : " + t.getMessage());
             }
         });
     }

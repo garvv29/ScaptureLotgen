@@ -1,5 +1,4 @@
 package com.seedtrac.lotgen.activity;
-
 import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Intent;

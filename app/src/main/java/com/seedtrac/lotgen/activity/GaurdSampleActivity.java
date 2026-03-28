@@ -7,8 +7,6 @@ import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -20,6 +18,8 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,7 +36,9 @@ import com.seedtrac.lotgen.R;
 import com.seedtrac.lotgen.communicator.alertCommunicator;
 import com.seedtrac.lotgen.parser.actlotlist.ActLotListResponse;
 import com.seedtrac.lotgen.parser.binlist.BinListResponse;
+import com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse;
 import com.seedtrac.lotgen.parser.binlist.Datum;
+import com.seedtrac.lotgen.parser.subbinlist.Datum1;
 import com.seedtrac.lotgen.parser.login.User;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoData;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoResponse;
@@ -66,11 +68,15 @@ public class GaurdSampleActivity extends AppCompatActivity {
     private LinearLayout ll_lotinfo;
     private EditText etBarcode;
     private Button btnSubmit;
+    private RadioGroup rgGsHandover;
     private List<String> lots=new ArrayList<>();
     private List<Data> whlist=new ArrayList<>();
     private Integer whId=0;
     private List<Datum> binlist=new ArrayList<>();
+
+    private List<Datum1> subbinlist=new ArrayList<>();
     private Integer binId=0;
+    private Integer subbinId=0;
     private String lotnumber, harvestdate, whname, binname;
     private Integer bagcount;
     private TextView tvFarmerName, tvFarmerVillage,tvBags, tvTotalQty, tvHarvestDate;
@@ -129,6 +135,7 @@ public class GaurdSampleActivity extends AppCompatActivity {
         tvBags = findViewById(R.id.tvBags);
         tvTotalQty = findViewById(R.id.tvTotalQty);
         etBarcode = findViewById(R.id.etBarcode);
+        rgGsHandover = findViewById(R.id.rgGsHandover);
 
         // Set title
         TextView tvToolbarTitle = findViewById(R.id.tvToolbarTitle);
@@ -152,6 +159,11 @@ public class GaurdSampleActivity extends AppCompatActivity {
         dd_bin.setOnItemClickListener((parent, view, position, id) -> {
             Datum selectedBin = binlist.get(position);
             binId = selectedBin.getBinid();
+            getSubbinList();
+        });
+        dd_subbin.setOnItemClickListener((parent, view, position, id) -> {
+            Datum1 selectedBin = subbinlist.get(position);
+            subbinId = selectedBin.getSubbinid();
         });
 
         etBarcode.addTextChangedListener(new TextWatcher() {
@@ -263,12 +275,21 @@ public class GaurdSampleActivity extends AppCompatActivity {
     }
 
     private void submitForm(String lot, String barcode) {
+        // Get selected farmer handover value
+        int handoverId = rgGsHandover.getCheckedRadioButtonId();
+        String farmerHandover = "";
+        
+        if (handoverId != -1) {
+            RadioButton rbSelected = findViewById(handoverId);
+            farmerHandover = rbSelected.getText().toString();
+        }
+        
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
-        Log.e("Params:", userData.getScode()+"="+lot+"="+barcode);
-        Call<SubmitSuccessResponse> call =apiInterface.updateGuardSampleDetails(userData.getMobile1(), userData.getScode(), barcode, lot, whId.toString(), binId.toString());
+        Log.e("Params:", userData.getScode()+"="+lot+"="+barcode+"="+lot+"="+whId+"="+binId+"="+subbinId+"="+farmerHandover);
+        Call<SubmitSuccessResponse> call =apiInterface.updateGuardSampleDetails(userData.getMobile1(), userData.getScode(), barcode, lot, whId.toString(), binId.toString(), subbinId.toString(), farmerHandover);
         call.enqueue(new Callback<>() {
             @SuppressLint({"NotifyDataSetChanged", "SetTextI18n"})
             @Override
@@ -428,6 +449,63 @@ public class GaurdSampleActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<BinListResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Log.e("Error", "RetrofitError : " + t.getMessage());
+                Utils.showAlert(GaurdSampleActivity.this,"RetrofitError : " + t.getMessage());
+                //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void getSubbinList() {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+        Log.e("Params:", userData.getMobile1()+"="+userData.getScode()+whId+"="+binId);
+        Call<SubBinListResponse> call =apiInterface.getSubbinList(userData.getMobile1(), userData.getScode(),whId,binId);
+        call.enqueue(new Callback<>() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void onResponse(@NonNull Call<SubBinListResponse> call, @NonNull Response<SubBinListResponse> response) {
+                if (response.isSuccessful()) {
+                    SubBinListResponse subbinListResponse = response.body();
+                    System.out.print("Response : " + subbinListResponse);
+                    if (subbinListResponse != null) {
+                        if (subbinListResponse.getStatus()) {
+                            Toast.makeText(GaurdSampleActivity.this, subbinListResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            subbinlist = subbinListResponse.getData();
+                            List<String> subbinList = new ArrayList<>();
+                            for (Datum1 list : subbinlist) {
+                                subbinList.add(list.getSubbinname());
+                            }
+                            ArrayAdapter<String> adapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_dropdown_item_1line, subbinList);
+                            dd_subbin.setAdapter(adapter);
+                            // Show dropdown on click (even without typing)
+                            dd_subbin.setOnClickListener(v -> dd_subbin.showDropDown());
+                        } else {
+                            Utils.showAlert(GaurdSampleActivity.this, subbinListResponse.getMsg());
+                            //Toast.makeText(BagsActivationSetupActivity.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                        }
+                        progressDialog.cancel();
+                    }
+                } else {
+                    progressDialog.cancel();
+                    if (response.errorBody() != null) {
+                        try {
+                            JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
+                            String msg = jsonObj.getString("msg");
+                            Utils.showAlert(GaurdSampleActivity.this,msg);
+                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SubBinListResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
                 Utils.showAlert(GaurdSampleActivity.this,"RetrofitError : " + t.getMessage());

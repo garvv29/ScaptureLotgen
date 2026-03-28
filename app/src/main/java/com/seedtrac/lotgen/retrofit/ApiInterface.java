@@ -14,6 +14,7 @@ import com.seedtrac.lotgen.parser.loadingtrinfo.LoadingTrInfoResponse;
 import com.seedtrac.lotgen.parser.loadingtrpendinglist.LoadingTrPendingListResponse;
 import com.seedtrac.lotgen.parser.login.LoginResponse;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoResponse;
+import com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse;
 import com.seedtrac.lotgen.parser.lotrecsubmit.LotRecSubmitSuccess;
 import com.seedtrac.lotgen.parser.pendinglotreport.PendingLotListReportResponse;
 import com.seedtrac.lotgen.parser.printlabel.PrintLabelInfo;
@@ -95,6 +96,9 @@ public interface ApiInterface {
     @GET("binlist.php")
     Call<BinListResponse> getBinList(@Query("mobile1") String mobile, @Query("scode") String scode, @Query("whid") Integer whId);
 
+    @GET("subbinlist.php")
+    Call<SubBinListResponse> getSubbinList(@Query("mobile1") String mobile, @Query("scode") String scode, @Query("whid") Integer whId,@Query("binid") Integer binId);
+
     @GET("lotrecpost.php")
     Call<LotRecSubmitSuccess> submitReceiveForm(@Query("mobile1") String mobile, @Query("scode") String scode,
                                                 @Query("lotno") String lot, @Query("harvestdate") String harvestDate,
@@ -135,19 +139,20 @@ public interface ApiInterface {
     @GET("gslotlist.php")
     Call<ActLotListResponse> getGsLotList(@Query("mobile1") String mobile, @Query("scode") String scode);
 
-    @GET("gsbarrcodechk.php")
+        @GET("gsbarrcodechk.php")
     Call<SubmitSuccessResponse> checkGsBarcode(@Query("mobile1") String mobile1, @Query("scode") String scode,
                                                @Query("qrcode") String qrcode);
 
     @GET("gsdatapost.php")
     Call<SubmitSuccessResponse> updateGuardSampleDetails(@Query("mobile1") String mobile, @Query("scode") String scode,
                                                 @Query("qrcode") String qrcode, @Query("lotno") String lotno,
-                                                @Query("whid") String whid, @Query("binid") String binid);
+                                                @Query("whid") String whid, @Query("binid") String binid, @Query("subbinid") String subbinid,
+                                                @Query("farmerhandover") String farmerhandover);
 
     @GET("gsdataupd.php")
     Call<SubmitSuccessResponse> updateGsSLOCDetails(@Query("mobile1") String mobile, @Query("scode") String scode,
                                                     @Query("qrcode") String qrcode, @Query("whid") String whid,
-                                                    @Query("binid") String binid);
+                                                    @Query("binid") String binid, @Query("subbinid") String subbinid);
 
     @GET("gsbarcodeinfo.php")
     Call<GsBarcodeInfoResponse> getGsBarcodeInfo(@Query("mobile1") String mobile, @Query("scode") String scode,
