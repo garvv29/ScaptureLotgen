@@ -14,7 +14,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -30,7 +29,6 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -43,7 +41,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -55,21 +52,22 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.seedtrac.lotgen.MainActivity;
 import com.seedtrac.lotgen.R;
-import com.seedtrac.lotgen.adapter.BagsAdapter;
 import com.seedtrac.lotgen.adapter.LabelPrintingBarcodeListAdapter;
 import com.seedtrac.lotgen.model.LabelData;
-import com.seedtrac.lotgen.parser.actbarcodelist.ActBarcodeListResponse;
-import com.seedtrac.lotgen.parser.actbarcodelist.Data;
 import com.seedtrac.lotgen.parser.labelprintingbarcodelist.Datum;
 import com.seedtrac.lotgen.parser.labelprintingbarcodelist.LabelPrintingBarList;
 import com.seedtrac.lotgen.parser.login.User;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoData;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoResponse;
 import com.seedtrac.lotgen.parser.printlabel.PrintLabelInfo;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinListResponse;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinData;
 import com.seedtrac.lotgen.parser.printlabel.Qrarray;
+
+
 import com.seedtrac.lotgen.parser.submitsuccess.SubmitSuccessResponse;
-import com.seedtrac.lotgen.parser.whlist.WhListResponse;
-import com.seedtrac.lotgen.parser.binlist.BinListResponse;
+import com.seedtrac.lotgen.parser.gswhlist.WhListResponse;
+import com.seedtrac.lotgen.parser.gsbinlist.BinListResponse;
 import com.seedtrac.lotgen.retrofit.ApiInterface;
 import com.seedtrac.lotgen.retrofit.RetrofitClient;
 import com.seedtrac.lotgen.sessionmanager.SharedPreferences;
@@ -242,9 +240,9 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // Android 12+
-            if (ContextCompat.checkSelfPermission(this,
+            if (ActivityCompat.checkSelfPermission(this,
                     Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(this,
+                    ActivityCompat.checkSelfPermission(this,
                             Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
 
                 ActivityCompat.requestPermissions(
@@ -260,7 +258,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
         } else {
             // Android 11 and below
-            if (ContextCompat.checkSelfPermission(this,
+            if (ActivityCompat.checkSelfPermission(this,
                     Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
                 ActivityCompat.requestPermissions(
@@ -274,7 +272,6 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         }
 
         btnAdd.setOnClickListener(v -> {
-            //getWeighFromBlutooth();
             if(socket!=null){
                 if (socket.isConnected()){
                     getWeighFromBlutooth();
@@ -282,6 +279,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                     Toast.makeText(this, "Bluetooth not connected", Toast.LENGTH_SHORT).show();
                 }
             }
+
         });
 
         bt_con.setOnClickListener(new View.OnClickListener() {
@@ -317,13 +315,11 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 }*/
                 else {
                     String sourceActivity = getIntent().getStringExtra("sourceActivity");
-                    if ("LotReceiveActivity".equals(sourceActivity)) {
-                        // Print Roll flow - show Guard Sample popup
-                        showGuardSamplePopup();
-                    } else {
-                        // Regular flow - direct submit
-                        finalSubmit();
-                    }
+                    // ALWAYS show guard sample popup after all bags are printed and scanned
+                    String flowStageKey = "flow_stage_" + lotnumber;
+                    SharedPreferences.getInstance(PrintBagsLabelActivity.this).storeObject(flowStageKey, "GuardSample");
+                    
+                    showGuardSamplePopup();
                 }
             }
         });
@@ -672,7 +668,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                     System.out.print("Response : " + lotInfoResponse);
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
-                            // ✅ FIX: Check if data list is not null and not empty before accessing
+                            // FIX: Check if data list is not null and not empty before accessing
                             if (lotInfoResponse.getData() != null && !lotInfoResponse.getData().isEmpty()) {
                                 lotInfoData = lotInfoResponse.getData().get(0);
                                 tvLotNumber.setText(lotInfoData.getLotno());
@@ -963,7 +959,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
     private void printTSCLabelWifi(LabelData data) {
 
-        String printerIp = "192.168.31.105";
+        String printerIp = "172.21.21.132";
         int port = 9100;
 
         String tspl = String.format(
@@ -975,28 +971,62 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                         "DENSITY 15\n" +
                         "SETENERGY 11\n" +
 
-                        "TEXT 90,124,\"3\",0,1,1,\"------------X------------\"\n" +
+                        "TEXT 50,124,\"3\",0,1,1,\"------------X------------\"\n" +
 
-                        "TEXT 240,180,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 160,270,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 160,360,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 40,450,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 140,540,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 190,630,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 170,720,\"3\",0,3,3,\"%s\"\n" +
-                        "QRCODE 150,810,L,13,A,0,M2,S7,\"%s\"\n" +
+                        // First Section (gap 60)
+                        "TEXT 200,180,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 120,240,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 120,300,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 20,360,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 100,420,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 150,480,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 130,540,\"3\",0,2,2,\"%s\"\n" +
+                        "QRCODE 80,600,L,9,A,0,M2,S5,\"%s\"\n" +
 
-                        "TEXT 40,1950,\"3\",0,1,1,\"------------------------------\"\n" +
+                        // Divider
+                        "TEXT 20,1480,\"3\",0,1,1,\"------------------------------\"\n" +
 
-                        "TEXT 240,2920,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 160,3010,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 160,3100,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 40,3190,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 140,3280,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 190,3370,\"3\",0,3,3,\"%s\"\n" +
-                        "TEXT 170,3460,\"3\",0,3,3,\"%s\"\n" +
-                        "QRCODE 150,3550,L,13,A,0,M2,S7,\"%s\"\n" +
+                        // Second Section
+                        "TEXT 200,2040,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 120,2090,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 120,2140,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 20,2190,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 100,2240,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 150,2300,\"3\",0,2,2,\"%s\"\n" +
+                        "TEXT 130,2360,\"3\",0,2,2,\"%s\"\n" +
+                        "QRCODE 80,2420,L,9,A,0,M2,S5,\"%s\"\n" +
+
                         "PRINT 1,1\n",
+//                "SIZE 50 mm,330 mm\n" +
+//                        "GAP 0,0\n" +
+//                        "DIRECTION 1\n" +
+//                        "CLS\n" +
+//                        "SPEED 3\n" +
+//                        "DENSITY 15\n" +
+//                        "SETENERGY 11\n" +
+//
+//                        "TEXT 90,124,\"3\",0,1,1,\"------------X------------\"\n" +
+//
+//                        "TEXT 240,180,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 160,270,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 160,360,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 40,450,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 140,540,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 190,630,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 170,720,\"3\",0,3,3,\"%s\"\n" +
+//                        "QRCODE 150,810,L,13,A,0,M2,S7,\"%s\"\n" +
+//
+//                        "TEXT 40,1950,\"3\",0,1,1,\"------------------------------\"\n" +
+//
+//                        "TEXT 240,2920,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 160,3010,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 160,3100,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 40,3190,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 140,3280,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 190,3370,\"3\",0,3,3,\"%s\"\n" +
+//                        "TEXT 170,3460,\"3\",0,3,3,\"%s\"\n" +
+//                        "QRCODE 150,3550,L,13,A,0,M2,S7,\"%s\"\n" +
+//                        "PRINT 1,1\n",
 
                 // -------- First Label --------
                 data.crop,
@@ -1057,17 +1087,58 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
         RadioGroup rgGuardSample = dialog.findViewById(R.id.rgGuardSample);
         LinearLayout guardSampleDetailsContainer = dialog.findViewById(R.id.guardSampleDetailsContainer);
-        
         TextInputEditText etLotNumber = dialog.findViewById(R.id.etLotNumber);
         TextInputEditText etBarcodeScan = dialog.findViewById(R.id.etBarcodeScan);
         AutoCompleteTextView dd_wh_popup = dialog.findViewById(R.id.dd_wh_popup);
         AutoCompleteTextView dd_bin_popup = dialog.findViewById(R.id.dd_bin_popup);
+        AutoCompleteTextView dd_subbin_popup = dialog.findViewById(R.id.dd_subbin_popup);
         RadioGroup rgFarmerHandover = dialog.findViewById(R.id.rgFarmerHandover);
         MaterialButton btnCancel = dialog.findViewById(R.id.btnCancel);
         MaterialButton btnSubmit = dialog.findViewById(R.id.btnSubmit);
 
+        // Variables to store selected IDs
+        final Integer[] selectedWhId = {null};
+        final Integer[] selectedBinId = {null};
+        final Integer[] selectedSubbinId = {null};
+
+        // Barcode validation state
+        final boolean[] isBarcodeValid = {false};
+
+        // Debounce handler for barcode validation
+        final Handler barcodeHandler = new Handler();
+        final Runnable[] barcodeRunnable = {null};
+
         // Set lot number
         etLotNumber.setText(lotnumber);
+
+        // Auto-validate barcode when scanned with debounce
+        etBarcodeScan.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String barcode = s.toString().trim();
+                Log.d("POPUP_BARCODE_INPUT", "Text changed: '" + barcode + "' (length=" + barcode.length() + ")");
+                
+                // Reset barcode validity when user modifies input
+                if (!barcode.isEmpty()) {
+                    isBarcodeValid[0] = false;
+                    updateSubmitButtonState(btnSubmit, isBarcodeValid[0], selectedWhId[0], selectedBinId[0], selectedSubbinId[0]);
+                }
+
+                // Validate immediately when correct length is detected (no debounce)
+                if (barcode.length() == 8 || barcode.length() == 9 || barcode.length() == 11) {
+                    Log.d("POPUP_BARCODE_INPUT", "Valid length detected! Calling validation API immediately...");
+                    validateGuardSampleBarcode(barcode, dialog, isBarcodeValid, btnSubmit, selectedWhId, selectedBinId, selectedSubbinId);
+                } else if (!barcode.isEmpty()) {
+                    Log.d("POPUP_BARCODE_INPUT", "Invalid length (" + barcode.length() + "), waiting for more input");
+                }
+            }
+        });
 
         // Handle Guard Sample Yes/No selection
         rgGuardSample.setOnCheckedChangeListener((group, checkedId) -> {
@@ -1076,19 +1147,33 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 guardSampleDetailsContainer.setVisibility(View.VISIBLE);
                 
                 // Load WH List only when Yes is selected
-                List<com.seedtrac.lotgen.parser.whlist.Data> whList = new ArrayList<>();
+                List<com.seedtrac.lotgen.parser.gswhlist.GsData> whList = new ArrayList<>();
                 dd_wh_popup.setOnClickListener(v -> dd_wh_popup.showDropDown());
                 dd_bin_popup.setOnClickListener(v -> dd_bin_popup.showDropDown());
+                dd_subbin_popup.setOnClickListener(view -> dd_subbin_popup.showDropDown());
 
                 // Fetch WH list
-                getWhListForPopup(dd_wh_popup, dd_bin_popup, whList, dialog);
+                getWhListForPopup(dd_wh_popup, dd_bin_popup, new ArrayList<>(), dialog, selectedWhId, selectedBinId, selectedSubbinId, btnSubmit, isBarcodeValid);
+                
+                // Update button state based on Yes validation
+                updateSubmitButtonState(btnSubmit, isBarcodeValid[0], selectedWhId[0], selectedBinId[0], selectedSubbinId[0]);
             } else {
                 // Hide the details container
                 guardSampleDetailsContainer.setVisibility(View.GONE);
+                
+                // Enable submit button for No selection (no validation needed)
+                btnSubmit.setEnabled(true);
+                btnSubmit.setAlpha(1.0f);
             }
         });
 
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnCancel.setOnClickListener(v -> {
+            // Cleanup debounce handler
+            if (barcodeRunnable[0] != null) {
+                barcodeHandler.removeCallbacks(barcodeRunnable[0]);
+            }
+            dialog.dismiss();
+        });
 
         btnSubmit.setOnClickListener(v -> {
             int guardSampleId = rgGuardSample.getCheckedRadioButtonId();
@@ -1098,10 +1183,14 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 return;
             }
 
-            // If No is selected, just proceed without validation
+            // If No is selected, just proceed with finalSubmit
             if (guardSampleId == R.id.rbGuardSampleNo) {
-                // Proceed to print labels without Guard Sample details
-                submitGuardSampleAndPrint(lotnumber, "", "No", dialog);
+                // Cleanup debounce handler
+                if (barcodeRunnable[0] != null) {
+                    barcodeHandler.removeCallbacks(barcodeRunnable[0]);
+                }
+                dialog.dismiss();
+                finalSubmit();
                 return;
             }
 
@@ -1109,39 +1198,115 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
             String barcode = etBarcodeScan.getText().toString().trim();
             String selectedWh = dd_wh_popup.getText().toString().trim();
             String selectedBin = dd_bin_popup.getText().toString().trim();
+            String selectedSubbin = dd_subbin_popup.getText().toString().trim();
 
-            // Get selected value from farmer handover radio group
-            int farmerHandoverId = rgFarmerHandover.getCheckedRadioButtonId();
-
-            if (barcode.isEmpty() || selectedWh.isEmpty() || selectedBin.isEmpty()) {
-                Utils.showAlert(PrintBagsLabelActivity.this, "Please fill all fields");
+            if (barcode.isEmpty() || selectedWh.isEmpty() || selectedBin.isEmpty() ) {
+                Utils.showAlert(PrintBagsLabelActivity.this, "Please fill all required fields");
                 return;
             }
 
+            if (!isBarcodeValid[0]) {
+                Utils.showAlert(PrintBagsLabelActivity.this, "Please ensure barcode is valid");
+                return;
+            }
+
+            if (selectedWhId[0] == null || selectedBinId[0] == null ) {
+                Utils.showAlert(PrintBagsLabelActivity.this, "Please select valid Warehouse, Bin, and Sub-Bin");
+                return;
+            }
+
+            // Get selected farmer handover value
+            int farmerHandoverId = rgFarmerHandover.getCheckedRadioButtonId();
             if (farmerHandoverId == -1) {
                 Utils.showAlert(PrintBagsLabelActivity.this, "Please select Farmer Handover");
                 return;
             }
 
-            // Get radio button text
             RadioButton rbFarmerHandover = dialog.findViewById(farmerHandoverId);
             String farmerHandover = rbFarmerHandover.getText().toString();
 
-            // Submit guard sample and then submit print label
-            submitGuardSampleAndPrint(lotnumber, barcode, farmerHandover, dialog);
+            // Cleanup debounce handler before API call
+            if (barcodeRunnable[0] != null) {
+                barcodeHandler.removeCallbacks(barcodeRunnable[0]);
+            }
+
+            // Call API to update guard sample details
+            updateGuardSampleDetails(barcode, lotnumber, selectedWhId[0], selectedBinId[0], selectedSubbinId[0], farmerHandover, dialog);
         });
+
+        // Initially disable submit button
+        updateSubmitButtonState(btnSubmit, isBarcodeValid[0], selectedWhId[0], selectedBinId[0], selectedSubbinId[0]);
 
         dialog.show();
     }
 
+    // Helper method to update submit button state
+    @SuppressLint("SetTextI18n")
+    private void updateSubmitButtonState(MaterialButton btnSubmit, boolean isBarcodeValid, Integer whId, Integer binId, Integer subbinId) {
+        boolean allFieldsValid = isBarcodeValid && whId != null && binId != null && subbinId != null;
+        btnSubmit.setEnabled(allFieldsValid);
+        btnSubmit.setAlpha(allFieldsValid ? 1.0f : 0.5f);
+    }
+
+    // Validate barcode with debounce and track validation state
+    private void validateGuardSampleBarcode(String barcode, Dialog dialog, boolean[] isBarcodeValid, MaterialButton btnSubmit, Integer[] selectedWhId, Integer[] selectedBinId, Integer[] selectedSubbinId) {
+        Log.e("POPUP_BARCODE", "============ VALIDATION STARTED ============");
+        Log.e("POPUP_BARCODE", "Barcode: " + barcode + " | Length: " + barcode.length());
+        Log.e("POPUP_BARCODE", "UserData: Mobile=" + (userData != null ? userData.getMobile1() : "NULL") + ", SCode=" + (userData != null ? userData.getScode() : "NULL"));
+        
+        if (userData == null) {
+            Log.e("POPUP_BARCODE", "ERROR: userData is NULL!");
+            Toast.makeText(PrintBagsLabelActivity.this, "Error: User data not loaded", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        Log.e("POPUP_BARCODE", "Calling checkGsBarcode API with mobile=" + userData.getMobile1() + ", scode=" + userData.getScode());
+        
+        Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), barcode);
+        Log.e("POPUP_BARCODE", "API call enqueued, waiting for response...");
+        call.enqueue(new Callback<SubmitSuccessResponse>() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
+                if (response.isSuccessful()) {
+                    SubmitSuccessResponse submitResponse = response.body();
+                    if (submitResponse != null && submitResponse.getStatus()) {
+                        isBarcodeValid[0] = true;
+                        Log.d("POPUP_BARCODE", "Valid: " + submitResponse.getMsg());
+                        Toast.makeText(PrintBagsLabelActivity.this, "✓ Barcode valid", Toast.LENGTH_SHORT).show();
+                    } else {
+                        isBarcodeValid[0] = false;
+                        Log.d("POPUP_BARCODE", "Invalid: " + (submitResponse != null ? submitResponse.getMsg() : "Unknown"));
+                        Toast.makeText(PrintBagsLabelActivity.this, "✗ Invalid barcode", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    isBarcodeValid[0] = false;
+                    Log.d("POPUP_BARCODE", "Validation failed - HTTP " + response.code());
+                }
+
+                // Update button state based on validation result
+                updateSubmitButtonState(btnSubmit, isBarcodeValid[0], selectedWhId[0], selectedBinId[0], selectedSubbinId[0]);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
+                // Silent fail on network errors during validation
+                Log.d("POPUP_BARCODE", "Network error: " + t.getClass().getSimpleName());
+            }
+        });
+    }
+
     private void getWhListForPopup(AutoCompleteTextView dd_wh, AutoCompleteTextView dd_bin, 
-                                    List<com.seedtrac.lotgen.parser.whlist.Data> whList, Dialog dialog) {
+                                    List<com.seedtrac.lotgen.parser.gswhlist.GsData> whList, Dialog dialog,
+                                    Integer[] selectedWhId, Integer[] selectedBinId, Integer[] selectedSubbinId,
+                                    MaterialButton btnSubmit, boolean[] isBarcodeValid) {
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
-        Call<WhListResponse> call = apiInterface.getWhList(userData.getMobile1(), userData.getScode());
+        Call<WhListResponse> call = apiInterface.getGsWhList(userData.getMobile1(), userData.getScode());
         call.enqueue(new Callback<WhListResponse>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -1149,11 +1314,14 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 if (response.isSuccessful()) {
                     WhListResponse whListResponse = response.body();
                     if (whListResponse != null && whListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.whlist.Data> dataList = whListResponse.getData();
+                        List<com.seedtrac.lotgen.parser.gswhlist.GsData> dataList = whListResponse.getData();
                         whList.addAll(dataList);
                         List<String> whNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.whlist.Data w : dataList) {
+                        for (com.seedtrac.lotgen.parser.gswhlist.GsData w : dataList) {
+                        if (w.getWhname() != null) {
                             whNames.add(w.getWhname());
+                        }
+
                         }
                         ArrayAdapter<String> adapter = new ArrayAdapter<>(PrintBagsLabelActivity.this, 
                             android.R.layout.simple_dropdown_item_1line, whNames);
@@ -1161,10 +1329,18 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
                         // WH selection listener
                         dd_wh.setOnItemClickListener((parent, view, position, id) -> {
-                            com.seedtrac.lotgen.parser.whlist.Data selectedWhData = dataList.get(position);
+                            com.seedtrac.lotgen.parser.gswhlist.GsData selectedWhData = dataList.get(position);
                             Integer whId = selectedWhData.getWhid();
-                            getBinListForPopup(whId, dd_bin);
+                            selectedWhId[0] = whId;  // Store WH ID
+                            selectedBinId[0] = null; // Reset BIN and SUBBIN when WH changes
+                            selectedSubbinId[0] = null;
+                            dd_bin.setText("");      // Clear BIN dropdown
+                            AutoCompleteTextView dd_subbin_popup = dialog.findViewById(R.id.dd_subbin_popup);
+                            getBinListForPopup(whId, dd_bin, dd_subbin_popup, selectedBinId, selectedSubbinId, btnSubmit, isBarcodeValid);
+                            // Update button state
+                            updateSubmitButtonState(btnSubmit, isBarcodeValid[0], selectedWhId[0], selectedBinId[0], selectedSubbinId[0]);
                         });
+
                     }
                     progressDialog.cancel();
                 } else {
@@ -1181,13 +1357,13 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         });
     }
 
-    private void getBinListForPopup(Integer whId, AutoCompleteTextView dd_bin) {
+    private void getBinListForPopup(Integer whId, AutoCompleteTextView dd_bin, AutoCompleteTextView dd_subbin, Integer[] selectedBinId, Integer[] selectedSubbinId, MaterialButton btnSubmit, boolean[] isBarcodeValid) {
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
-        Call<BinListResponse> call = apiInterface.getBinList(userData.getMobile1(), userData.getScode(), whId);
+        Call<BinListResponse> call = apiInterface.getGsBinList(userData.getMobile1(), userData.getScode(), whId);
         call.enqueue(new Callback<BinListResponse>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -1195,14 +1371,29 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 if (response.isSuccessful()) {
                     BinListResponse binListResponse = response.body();
                     if (binListResponse != null && binListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.binlist.Datum> binList = binListResponse.getData();
+                        List<com.seedtrac.lotgen.parser.gsbinlist.GsDatum> binList = binListResponse.getData();
                         List<String> binNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.binlist.Datum b : binList) {
+                        for (com.seedtrac.lotgen.parser.gsbinlist.GsDatum b : binList) {
+                        if (b.getBinname() != null) {
                             binNames.add(b.getBinname());
+                        }
+
                         }
                         ArrayAdapter<String> adapter = new ArrayAdapter<>(PrintBagsLabelActivity.this, 
                             android.R.layout.simple_dropdown_item_1line, binNames);
                         dd_bin.setAdapter(adapter);
+
+                        // BIN selection listener
+                        dd_bin.setOnItemClickListener((parent, view, position, id) -> {
+                            com.seedtrac.lotgen.parser.gsbinlist.GsDatum selectedBinData = binList.get(position);
+                            Integer binId = selectedBinData.getBinid();
+                            selectedBinId[0] = binId;  // Store BIN ID
+                            selectedSubbinId[0] = null; // Reset SUBBIN when BIN changes
+                            dd_subbin.setText("");
+                            getSubBinListForPopup(whId, binId, dd_subbin, selectedSubbinId, btnSubmit, isBarcodeValid);
+                            // Update button state
+                            updateSubmitButtonState(btnSubmit, isBarcodeValid[0], whId, selectedBinId[0], null);
+                        });
                     }
                     progressDialog.cancel();
                 } else {
@@ -1219,37 +1410,125 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         });
     }
 
-    private void submitGuardSampleAndPrint(String lot, String barcode, String farmerHandover, Dialog dialog) {
+    private void getSubBinListForPopup(Integer whId, Integer binId, AutoCompleteTextView dd_subbin, Integer[] selectedSubbinId, MaterialButton btnSubmit, boolean[] isBarcodeValid) {
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
-        Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), barcode);
+        Call<GsSubBinListResponse> call = apiInterface.getGsSubbinList(userData.getMobile1(), userData.getScode(), whId, binId);
+        call.enqueue(new Callback<GsSubBinListResponse>() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void onResponse(@NonNull Call<GsSubBinListResponse> call, @NonNull Response<GsSubBinListResponse> response) {
+                if (response.isSuccessful()) {
+                    GsSubBinListResponse subbinListResponse = response.body();
+                    if (subbinListResponse != null) {
+                        List<GsSubBinData> subbinList = subbinListResponse.getData();
+                        if (subbinList != null && !subbinList.isEmpty()) {
+                            List<String> binNames = new ArrayList<>();
+                            for (GsSubBinData b : subbinList) {
+                                if (b.getOutercontainer() != null) {
+                                    binNames.add(b.getOutercontainer());
+                                }
+                            }
+                            ArrayAdapter<String> adapter = new ArrayAdapter<>(PrintBagsLabelActivity.this,
+                                    android.R.layout.simple_dropdown_item_1line, binNames);
+                            dd_subbin.setAdapter(adapter);
+
+                            // SUBBIN selection listener
+                            dd_subbin.setOnItemClickListener((parent, view, position, id) -> {
+                                GsSubBinData selectedSubbinData = subbinList.get(position);
+                                Integer subbinId = selectedSubbinData.getBinid();
+                                selectedSubbinId[0] = subbinId;  // Store SUBBIN ID
+                                Log.d("POPUP_SUBBIN", "Selected SUBBIN ID: " + subbinId);
+                                // Update button state when SUBBIN is selected
+                                updateSubmitButtonState(btnSubmit, isBarcodeValid[0], whId, binId, subbinId);
+                            });
+                        } else {
+                            Utils.showAlert(PrintBagsLabelActivity.this, "No SubBin data available");
+                        }
+                    } else {
+                        Utils.showAlert(PrintBagsLabelActivity.this, "Empty response from server");
+                    }
+                    progressDialog.cancel();
+                } else {
+                    progressDialog.cancel();
+                    Utils.showAlert(PrintBagsLabelActivity.this, "Failed to load SubBin list");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<GsSubBinListResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Utils.showAlert(PrintBagsLabelActivity.this, "Error: " + t.getMessage());
+            }
+        });
+    }
+
+    // REMOVED: submitGuardSampleAndPrint() - Replaced with updateGuardSampleDetails()
+
+    private void updateGuardSampleDetails(String qrcode, String lotno, Integer whid, Integer binid, Integer subbinid, String farmerHandover, Dialog dialog) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Saving guard sample details...");
+        progressDialog.show();
+
+        Log.d("POPUP_UPDATE_GS", "QR: " + qrcode + " | Lot: " + lotno + " | WH: " + whid + " | BIN: " + binid + " | SUBBIN: " + subbinid + " | FarmerHandover: " + farmerHandover);
+
+        Call<SubmitSuccessResponse> call = apiInterface.updateGuardSampleDetails(
+            userData.getMobile1(),
+            userData.getScode(),
+            qrcode,
+            lotno,
+            String.valueOf(whid),
+            String.valueOf(binid),
+            String.valueOf(subbinid),
+            farmerHandover
+        );
+
         call.enqueue(new Callback<SubmitSuccessResponse>() {
             @Override
             public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
+                progressDialog.cancel();
                 if (response.isSuccessful()) {
                     SubmitSuccessResponse submitResponse = response.body();
                     if (submitResponse != null && submitResponse.getStatus()) {
+                        Toast.makeText(PrintBagsLabelActivity.this, "Guard sample saved successfully", Toast.LENGTH_SHORT).show();
+                        Log.d("POPUP_UPDATE_GS", "Success: " + submitResponse.getMsg());
+                        
+                        // Dismiss dialog and return to main
                         dialog.dismiss();
-                        progressDialog.cancel();
-                        Log.e("GuardSample", "Barcode: "+barcode+", Farmer Handover: "+farmerHandover);
-                        // Now submit the print label
-                        finalSubmit();
+                        Intent intent = new Intent(PrintBagsLabelActivity.this, MainActivity.class);
+                        startActivity(intent);
+                        finish();
                     } else {
-                        progressDialog.cancel();
-                        Utils.showAlert(PrintBagsLabelActivity.this, "Invalid barcode");
+                        Utils.showAlert(PrintBagsLabelActivity.this, submitResponse != null ? submitResponse.getMsg() : "Failed to save guard sample details");
                     }
                 } else {
-                    progressDialog.cancel();
-                    Utils.showAlert(PrintBagsLabelActivity.this, "Failed to validate barcode");
+                    if (response.errorBody() != null) {
+                        try {
+                            String errorBodyStr = TextStreamsKt.readText(response.errorBody().charStream());
+                            try {
+                                JSONObject jsonObj = new JSONObject(errorBodyStr);
+                                String msg = jsonObj.optString("msg", "Server Error: " + response.code());
+                                Utils.showAlert(PrintBagsLabelActivity.this, msg);
+                            } catch (JSONException je) {
+                                Utils.showAlert(PrintBagsLabelActivity.this, "Server Error: " + response.code());
+                            }
+                        } catch (Exception e) {
+                            Log.e("POPUP_UPDATE_GS", "Error parsing response: " + e.getMessage());
+                        }
+                    } else {
+                        Utils.showAlert(PrintBagsLabelActivity.this, "Server error: " + response.code());
+                    }
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
+                Log.e("POPUP_UPDATE_GS", "Network error: " + t.getMessage());
                 Utils.showAlert(PrintBagsLabelActivity.this, "Error: " + t.getMessage());
             }
         });
@@ -1327,3 +1606,8 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
     }
 
 }
+
+
+
+
+

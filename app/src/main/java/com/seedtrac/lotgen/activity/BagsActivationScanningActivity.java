@@ -17,7 +17,6 @@ import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -31,7 +30,6 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.window.OnBackInvokedDispatcher;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
@@ -57,7 +55,6 @@ import com.seedtrac.lotgen.R;
 import com.seedtrac.lotgen.adapter.BagsAdapter;
 import com.seedtrac.lotgen.parser.actbarcodelist.ActBarcodeListResponse;
 import com.seedtrac.lotgen.parser.actbarcodelist.Data;
-import com.seedtrac.lotgen.parser.activationsubmit.ActivationSubmitResponse;
 import com.seedtrac.lotgen.parser.login.User;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoData;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoResponse;
@@ -66,6 +63,8 @@ import com.seedtrac.lotgen.retrofit.ApiInterface;
 import com.seedtrac.lotgen.retrofit.RetrofitClient;
 import com.seedtrac.lotgen.sessionmanager.SharedPreferences;
 import com.seedtrac.lotgen.utils.Utils;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinListResponse;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinData;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -126,6 +125,13 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        
+        // Save flow stage: Currently in BagsActivationScanning
+        lotNumber = getIntent().getStringExtra("lotNumber");
+        if (lotNumber != null) {
+            String flowStageKey = "flow_stage_" + lotNumber;
+            SharedPreferences.getInstance(this).storeObject(flowStageKey, "BagsActivationScanning");
+        }
 
         Window window = getWindow();
         // Change background color
@@ -576,6 +582,9 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
+        
+        Log.d("SCANNING_SUBMIT", "SCode: " + userData.getScode() + ", TRId: " + (lotInfoData != null ? lotInfoData.getTrid() : "NULL"));
+        
         Log.e("Params:", userData.getScode()+"="+lotInfoData.getTrid());
         Call<SubmitSuccessResponse> call =apiInterface.actSetupFinalSubmit(userData.getScode(), lotInfoData.getTrid().toString());
         call.enqueue(new Callback<>() {
@@ -587,6 +596,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                     System.out.print("Response : " + submitSuccessResponse);
                     if (submitSuccessResponse != null) {
                         if (submitSuccessResponse.getStatus()) {
+                            Log.d("SCANNING_SUBMIT", "Activation complete");
                             Toast.makeText(BagsActivationScanningActivity.this, submitSuccessResponse.getMsg(), Toast.LENGTH_SHORT).show();
                             progressDialog.cancel();
                             
@@ -616,8 +626,8 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
-                Log.e("Error", "RetrofitError : " + t.getMessage());
-                Utils.showAlert(BagsActivationScanningActivity.this, "RetrofitError : " + t.getMessage());
+                // Silent fail on network errors - don't show technical messages
+                Log.e("SCANNING_ERROR", "Network Error: " + t.getClass().getSimpleName());
             }
         });
     }
@@ -741,7 +751,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                     System.out.print("Response : " + lotInfoResponse);
                     if (lotInfoResponse != null) {
                         if (lotInfoResponse.getStatus()) {
-                            // ✅ FIX: Check if data list is not null and not empty before accessing
+                            // FIX: Check if data list is not null and not empty before accessing
                             if (lotInfoResponse.getData() != null && !lotInfoResponse.getData().isEmpty()) {
                                 lotInfoData = lotInfoResponse.getData().get(0);
                                 tvLotNumber.setText(lotInfoData.getLotno());
@@ -881,14 +891,6 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             if (checkedId == R.id.rbGuardSampleYes) {
                 // Show the details container
                 guardSampleDetailsContainer.setVisibility(View.VISIBLE);
-                
-                // Load WH List only when Yes is selected
-                List<com.seedtrac.lotgen.parser.whlist.Data> whList = new ArrayList<>();
-                dd_wh_popup.setOnClickListener(v -> dd_wh_popup.showDropDown());
-                dd_bin_popup.setOnClickListener(v -> dd_bin_popup.showDropDown());
-
-                // Fetch WH list
-                getWhListForPopup(dd_wh_popup, dd_bin_popup, whList, dialog);
             } else {
                 // Hide the details container
                 guardSampleDetailsContainer.setVisibility(View.GONE);
@@ -905,40 +907,9 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 return;
             }
 
-            // If No is selected, just proceed without validation
-            if (guardSampleId == R.id.rbGuardSampleNo) {
-                // Proceed to MainActivity without Guard Sample details
-                Intent intent = new Intent(BagsActivationScanningActivity.this, MainActivity.class);
-                startActivity(intent);
-                dialog.dismiss();
-                finish();
-                return;
-            }
-
-            // If Yes is selected, validate all fields
-            String barcode = etBarcodeScan.getText().toString().trim();
-            String selectedWh = dd_wh_popup.getText().toString().trim();
-            String selectedBin = dd_bin_popup.getText().toString().trim();
-
-            // Get selected value from farmer handover radio group
-            int farmerHandoverId = rgFarmerHandover.getCheckedRadioButtonId();
-
-            if (barcode.isEmpty() || selectedWh.isEmpty() || selectedBin.isEmpty()) {
-                Utils.showAlert(BagsActivationScanningActivity.this, "Please fill all fields");
-                return;
-            }
-
-            if (farmerHandoverId == -1) {
-                Utils.showAlert(BagsActivationScanningActivity.this, "Please select Farmer Handover");
-                return;
-            }
-
-            // Get radio button text
-            RadioButton rbFarmerHandover = dialog.findViewById(farmerHandoverId);
-            String farmerHandover = rbFarmerHandover.getText().toString();
-
-            // Submit guard sample and proceed
-            submitGuardSampleAndProceed(lotNumber, barcode, farmerHandover, dialog);
+            // Proceed regardless of Yes/No selection
+            dialog.dismiss();
+            showConfirmationDialogBeforeFinalSubmit();
         });
 
         dialog.show();
@@ -958,31 +929,52 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
         TextInputEditText etBarcodeScan = dialog.findViewById(R.id.etBarcodeScan);
         AutoCompleteTextView dd_wh_popup = dialog.findViewById(R.id.dd_wh_popup);
         AutoCompleteTextView dd_bin_popup = dialog.findViewById(R.id.dd_bin_popup);
+        AutoCompleteTextView dd_subbin_popup = dialog.findViewById(R.id.dd_subbin_popup);
         RadioGroup rgFarmerHandover = dialog.findViewById(R.id.rgFarmerHandover);
         MaterialButton btnCancel = dialog.findViewById(R.id.btnCancel);
         MaterialButton btnSubmit = dialog.findViewById(R.id.btnSubmit);
 
+        // Variables to store selected IDs
+        final Integer[] selectedWhId = {null};
+        final Integer[] selectedBinId = {null};
+        final Integer[] selectedSubbinId = {null};
+
+        // Barcode validation state
+        final boolean[] isBarcodeValid = {false};
+
+        // Debounce handler for barcode validation
+        final Handler barcodeHandler = new Handler();
+        final Runnable[] barcodeRunnable = {null};
+
         // Set lot number
         etLotNumber.setText(lotNumber);
 
-        // Add real-time barcode validation listener for Guard Sample popup
+        // Auto-validate barcode with debounce (same as PrintBagsLabelActivity)
         etBarcodeScan.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String scanResult = etBarcodeScan.getText().toString().trim();
-                if (!scanResult.isEmpty()) {
-                    if (scanResult.length() == 8 || scanResult.length() == 11) {
-                        validateBarcodeForActivationPopup(scanResult);
-                    }
-                }
-            }
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
 
             @Override
             public void afterTextChanged(Editable s) {
+                String barcode = s.toString().trim();
+                Log.d("SCANNING_BARCODE_INPUT", "Text changed: '" + barcode + "' (length=" + barcode.length() + ")");
+                
+                // Reset barcode validity when user modifies input
+                if (!barcode.isEmpty()) {
+                    isBarcodeValid[0] = false;
+                    updateSubmitButtonStateForActivation(btnSubmit, isBarcodeValid[0], selectedWhId[0], selectedBinId[0], selectedSubbinId[0]);
+                }
+
+                // Validate immediately when correct length is detected (no debounce)
+                if (barcode.length() == 8 || barcode.length() == 9 || barcode.length() == 11) {
+                    Log.d("SCANNING_BARCODE_INPUT", "Valid length detected! Calling validation API immediately...");
+                    validateGuardSampleBarcodeForActivation(barcode, isBarcodeValid, btnSubmit, selectedWhId, selectedBinId, selectedSubbinId);
+                } else if (!barcode.isEmpty()) {
+                    Log.d("SCANNING_BARCODE_INPUT", "Invalid length (" + barcode.length() + "), waiting for more input");
+                }
             }
         });
 
@@ -993,19 +985,33 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 guardSampleDetailsContainer.setVisibility(View.VISIBLE);
                 
                 // Load WH List only when Yes is selected
-                List<com.seedtrac.lotgen.parser.whlist.Data> whList = new ArrayList<>();
+                List<com.seedtrac.lotgen.parser.gswhlist.GsData> whList = new ArrayList<>();
                 dd_wh_popup.setOnClickListener(v -> dd_wh_popup.showDropDown());
                 dd_bin_popup.setOnClickListener(v -> dd_bin_popup.showDropDown());
+                dd_subbin_popup.setOnClickListener(view -> dd_subbin_popup.showDropDown());
 
-                // Fetch WH list
-                getWhListForPopup(dd_wh_popup, dd_bin_popup, whList, dialog);
+                // Fetch WH list with ID storage
+                getWhListForActivationPopup(dd_wh_popup, dd_bin_popup, whList, dialog, selectedWhId, selectedBinId, selectedSubbinId);
+                
+                // Update button state based on Yes validation
+                updateSubmitButtonStateForActivation(btnSubmit, isBarcodeValid[0], selectedWhId[0], selectedBinId[0], selectedSubbinId[0]);
             } else {
                 // Hide the details container
                 guardSampleDetailsContainer.setVisibility(View.GONE);
+                
+                // Enable submit button for No selection (no validation needed)
+                btnSubmit.setEnabled(true);
+                btnSubmit.setAlpha(1.0f);
             }
         });
 
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnCancel.setOnClickListener(v -> {
+            // Cleanup debounce handler
+            if (barcodeRunnable[0] != null) {
+                barcodeHandler.removeCallbacks(barcodeRunnable[0]);
+            }
+            dialog.dismiss();
+        });
 
         btnSubmit.setOnClickListener(v -> {
             int guardSampleId = rgGuardSample.getCheckedRadioButtonId();
@@ -1017,35 +1023,338 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
 
             // If No is selected, proceed with activation without Guard Sample validation
             if (guardSampleId == R.id.rbGuardSampleNo) {
+                // Cleanup debounce handler
+                if (barcodeRunnable[0] != null) {
+                    barcodeHandler.removeCallbacks(barcodeRunnable[0]);
+                }
                 dialog.dismiss();
                 showConfirmationDialogBeforeFinalSubmit();
                 return;
             }
 
-            // If Yes is selected, validate Guard Sample fields
+            // If Yes is selected, validate all Guard Sample fields
             String barcode = etBarcodeScan.getText().toString().trim();
             String selectedWh = dd_wh_popup.getText().toString().trim();
             String selectedBin = dd_bin_popup.getText().toString().trim();
-
-            // Get selected value from farmer handover radio group
-            int farmerHandoverId = rgFarmerHandover.getCheckedRadioButtonId();
+            String selectedSubbin = dd_subbin_popup.getText().toString().trim();
 
             if (barcode.isEmpty() || selectedWh.isEmpty() || selectedBin.isEmpty()) {
-                Utils.showAlert(BagsActivationScanningActivity.this, "Please fill all Guard Sample fields");
+                Utils.showAlert(BagsActivationScanningActivity.this, "Please fill all required fields");
                 return;
             }
 
+            if (!isBarcodeValid[0]) {
+                Utils.showAlert(BagsActivationScanningActivity.this, "Please ensure barcode is valid");
+                return;
+            }
+
+            if (selectedWhId[0] == null || selectedBinId[0] == null) {
+                Utils.showAlert(BagsActivationScanningActivity.this, "Please select valid Warehouse and Bin");
+                return;
+            }
+
+            // Get selected farmer handover value
+            int farmerHandoverId = rgFarmerHandover.getCheckedRadioButtonId();
             if (farmerHandoverId == -1) {
                 Utils.showAlert(BagsActivationScanningActivity.this, "Please select Farmer Handover");
                 return;
             }
 
-            // Guard Sample validation passed, now show confirmation before final submit
-            dialog.dismiss();
-            showConfirmationDialogBeforeFinalSubmit();
+            RadioButton rbFarmerHandover = dialog.findViewById(farmerHandoverId);
+            String farmerHandover = rbFarmerHandover.getText().toString();
+
+            // Cleanup debounce handler before API call
+            if (barcodeRunnable[0] != null) {
+                barcodeHandler.removeCallbacks(barcodeRunnable[0]);
+            }
+
+            // Call updateGuardSampleDetails API
+            updateGuardSampleDetailsForActivation(barcode, lotNumber, selectedWhId[0], selectedBinId[0], selectedSubbinId[0], farmerHandover, dialog);
         });
 
         dialog.show();
+    }
+
+    // Helper method to update submit button state for activation popup
+    @SuppressLint("SetTextI18n")
+    private void updateSubmitButtonStateForActivation(MaterialButton btnSubmit, boolean isBarcodeValid, Integer whId, Integer binId, Integer subbinId) {
+        boolean allFieldsValid = isBarcodeValid && whId != null && binId != null && subbinId != null;
+        btnSubmit.setEnabled(allFieldsValid);
+        btnSubmit.setAlpha(allFieldsValid ? 1.0f : 0.5f);
+    }
+
+    // Validate barcode with debounce for activation popup
+    private void validateGuardSampleBarcodeForActivation(String barcode, boolean[] isBarcodeValid, MaterialButton btnSubmit, Integer[] selectedWhId, Integer[] selectedBinId, Integer[] selectedSubbinId) {
+        Log.e("SCANNING_BARCODE", "============ VALIDATION STARTED ============");
+        Log.e("SCANNING_BARCODE", "Barcode: " + barcode + " | Length: " + barcode.length());
+        Log.e("SCANNING_BARCODE", "UserData: Mobile=" + (userData != null ? userData.getMobile1() : "NULL") + ", SCode=" + (userData != null ? userData.getScode() : "NULL"));
+        
+        if (userData == null) {
+            Log.e("SCANNING_BARCODE", "ERROR: userData is NULL!");
+            Toast.makeText(BagsActivationScanningActivity.this, "Error: User data not loaded", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        Log.e("SCANNING_BARCODE", "Calling checkGsBarcode API with mobile=" + userData.getMobile1() + ", scode=" + userData.getScode());
+        
+        Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), barcode);
+        Log.e("SCANNING_BARCODE", "API call enqueued, waiting for response...");
+        call.enqueue(new Callback<SubmitSuccessResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
+                if (response.isSuccessful()) {
+                    SubmitSuccessResponse submitResponse = response.body();
+                    if (submitResponse != null && submitResponse.getStatus()) {
+                        isBarcodeValid[0] = true;
+                        Log.d("SCANNING_BARCODE", "Valid: " + submitResponse.getMsg());
+                        Toast.makeText(BagsActivationScanningActivity.this, "✓ Barcode valid", Toast.LENGTH_SHORT).show();
+                    } else {
+                        isBarcodeValid[0] = false;
+                        Log.d("SCANNING_BARCODE", "Invalid: " + (submitResponse != null ? submitResponse.getMsg() : "Unknown"));
+                        Toast.makeText(BagsActivationScanningActivity.this, "✗ Invalid barcode", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    isBarcodeValid[0] = false;
+                    Log.d("SCANNING_BARCODE", "Validation failed - HTTP " + response.code());
+                }
+
+                // Update button state based on validation result
+                updateSubmitButtonStateForActivation(btnSubmit, isBarcodeValid[0], selectedWhId[0], selectedBinId[0], selectedSubbinId[0]);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
+                // Silent fail on network errors during validation
+                Log.d("SCANNING_BARCODE", "Network error: " + t.getClass().getSimpleName());
+            }
+        });
+    }
+
+    private void getWhListForActivationPopup(AutoCompleteTextView dd_wh, AutoCompleteTextView dd_bin, 
+                                    List<com.seedtrac.lotgen.parser.gswhlist.GsData> whList, Dialog dialog,
+                                    Integer[] selectedWhId, Integer[] selectedBinId, Integer[] selectedSubbinId) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+
+        Call<com.seedtrac.lotgen.parser.gswhlist.WhListResponse> call = apiInterface.getGsWhList(userData.getMobile1(), userData.getScode());
+        call.enqueue(new Callback<com.seedtrac.lotgen.parser.gswhlist.WhListResponse>() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.gswhlist.WhListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.gswhlist.WhListResponse> response) {
+                if (response.isSuccessful()) {
+                    com.seedtrac.lotgen.parser.gswhlist.WhListResponse whListResponse = response.body();
+                    if (whListResponse != null && whListResponse.getStatus()) {
+                        List<com.seedtrac.lotgen.parser.gswhlist.GsData> dataList = whListResponse.getData();
+                        whList.addAll(dataList);
+                        List<String> whNames = new ArrayList<>();
+                        for (com.seedtrac.lotgen.parser.gswhlist.GsData w : dataList) {
+                        if (w.getWhname() != null) {
+                            whNames.add(w.getWhname());
+                        }
+
+                        }
+                        ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this, 
+                            android.R.layout.simple_dropdown_item_1line, whNames);
+                        dd_wh.setAdapter(adapter);
+
+                        // WH selection listener with ID storage
+                        dd_wh.setOnItemClickListener((parent, view, position, id) -> {
+                            com.seedtrac.lotgen.parser.gswhlist.GsData selectedWhData = dataList.get(position);
+                            Integer whId = selectedWhData.getWhid();
+                            selectedWhId[0] = whId;  // Store WH ID
+                            selectedBinId[0] = null; // Reset BIN and SUBBIN when WH changes
+                            selectedSubbinId[0] = null;
+                            dd_bin.setText("");      // Clear BIN dropdown
+                            AutoCompleteTextView dd_subbin_popup = dialog.findViewById(R.id.dd_subbin_popup);
+                            getBinListForActivationPopup(whId, dd_bin, dd_subbin_popup, selectedBinId, selectedSubbinId);
+                        });
+
+                    }
+                    progressDialog.cancel();
+                } else {
+                    progressDialog.cancel();
+                    Utils.showAlert(BagsActivationScanningActivity.this, "Failed to load WH list");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.gswhlist.WhListResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
+            }
+        });
+    }
+
+    private void getBinListForActivationPopup(Integer whId, AutoCompleteTextView dd_bin, AutoCompleteTextView dd_subbin, Integer[] selectedBinId, Integer[] selectedSubbinId) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+
+        Call<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse> call = apiInterface.getGsBinList(userData.getMobile1(), userData.getScode(), whId);
+        call.enqueue(new Callback<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse>() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse> response) {
+                if (response.isSuccessful()) {
+                    com.seedtrac.lotgen.parser.gsbinlist.BinListResponse binListResponse = response.body();
+                    if (binListResponse != null && binListResponse.getStatus()) {
+                        List<com.seedtrac.lotgen.parser.gsbinlist.GsDatum> binList = binListResponse.getData();
+                        List<String> binNames = new ArrayList<>();
+                        for (com.seedtrac.lotgen.parser.gsbinlist.GsDatum b : binList) {
+                        if (b.getBinname() != null) {
+                            binNames.add(b.getBinname());
+                        }
+
+                        }
+                        ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this, 
+                            android.R.layout.simple_dropdown_item_1line, binNames);
+                        dd_bin.setAdapter(adapter);
+
+                        // BIN selection listener with ID storage and SUBBIN loading
+                        dd_bin.setOnItemClickListener((parent, view, position, id) -> {
+                            com.seedtrac.lotgen.parser.gsbinlist.GsDatum selectedBinData = binList.get(position);
+                            Integer binId = selectedBinData.getBinid();
+                            selectedBinId[0] = binId;  // Store BIN ID
+                            selectedSubbinId[0] = null; // Reset SUBBIN when BIN changes
+                            dd_subbin.setText("");
+                            getSubBinListForActivationPopup(whId, binId, dd_subbin, selectedSubbinId);
+                        });
+                    }
+                    progressDialog.cancel();
+                } else {
+                    progressDialog.cancel();
+                    Utils.showAlert(BagsActivationScanningActivity.this, "Failed to load BIN list");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
+            }
+        });
+    }
+
+    private void getSubBinListForActivationPopup(Integer whId, Integer binId, AutoCompleteTextView dd_subbin, Integer[] selectedSubbinId) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+
+        Call<GsSubBinListResponse> call = apiInterface.getGsSubbinList(userData.getMobile1(), userData.getScode(), whId, binId);
+        call.enqueue(new Callback<GsSubBinListResponse>() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void onResponse(@NonNull Call<GsSubBinListResponse> call, @NonNull Response<GsSubBinListResponse> response) {
+                if (response.isSuccessful()) {
+                    GsSubBinListResponse subbinListResponse = response.body();
+                    if (subbinListResponse != null) {
+                        List<GsSubBinData> subbinList = subbinListResponse.getData();
+                        if (subbinList != null && !subbinList.isEmpty()) {
+                            List<String> subbinNames = new ArrayList<>();
+                            for (GsSubBinData b : subbinList) {
+                                if (b.getOutercontainer() != null) {
+                                    subbinNames.add(b.getOutercontainer());
+                                }
+                            }
+                            ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this,
+                                    android.R.layout.simple_dropdown_item_1line, subbinNames);
+                            dd_subbin.setAdapter(adapter);
+
+                            // SUBBIN selection listener with ID storage
+                            dd_subbin.setOnItemClickListener((parent, view, position, id) -> {
+                                GsSubBinData selectedSubbinData = subbinList.get(position);
+                                Integer subbinId = selectedSubbinData.getBinid();
+                                selectedSubbinId[0] = subbinId;  // Store SUBBIN ID
+                                Log.d("SCANNING_SUBBIN", "Selected SUBBIN ID: " + subbinId);
+                            });
+                        } else {
+                            Utils.showAlert(BagsActivationScanningActivity.this, "No SubBin data available");
+                        }
+                    } else {
+                        Utils.showAlert(BagsActivationScanningActivity.this, "Empty response from server");
+                    }
+                    progressDialog.cancel();
+                } else {
+                    progressDialog.cancel();
+                    Utils.showAlert(BagsActivationScanningActivity.this, "Failed to load Sub-Bin list");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<GsSubBinListResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
+            }
+        });
+    }
+
+    private void updateGuardSampleDetailsForActivation(String qrcode, String lotno, Integer whid, Integer binid, Integer subbinid, String farmerHandover, Dialog dialog) {
+        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
+        final ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Saving guard sample details...");
+        progressDialog.show();
+
+        Log.d("SCANNING_UPDATE_GS", "QR: " + qrcode + " | Lot: " + lotno + " | WH: " + whid + " | BIN: " + binid + " | SUBBIN: " + subbinid + " | FarmerHandover: " + farmerHandover);
+
+        Call<SubmitSuccessResponse> call = apiInterface.updateGuardSampleDetails(
+            userData.getMobile1(),
+            userData.getScode(),
+            qrcode,
+            lotno,
+            String.valueOf(whid),
+            String.valueOf(binid),
+            String.valueOf(subbinid),
+            farmerHandover
+        );
+
+        call.enqueue(new Callback<SubmitSuccessResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
+                progressDialog.cancel();
+                if (response.isSuccessful()) {
+                    SubmitSuccessResponse submitResponse = response.body();
+                    if (submitResponse != null && submitResponse.getStatus()) {
+                        Toast.makeText(BagsActivationScanningActivity.this, submitResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                        Log.d("SCANNING_UPDATE_GS", "Success: " + submitResponse.getMsg());
+                        
+                        // Dismiss dialog and proceed with confirmation
+                        dialog.dismiss();
+                        showConfirmationDialogBeforeFinalSubmit();
+                    } else {
+                        Utils.showAlert(BagsActivationScanningActivity.this, submitResponse != null ? submitResponse.getMsg() : "Failed to save guard sample details");
+                    }
+                } else {
+                    if (response.errorBody() != null) {
+                        try {
+                            String errorBodyStr = TextStreamsKt.readText(response.errorBody().charStream());
+                            try {
+                                JSONObject jsonObj = new JSONObject(errorBodyStr);
+                                String msg = jsonObj.optString("msg", "Server Error: " + response.code());
+                                Utils.showAlert(BagsActivationScanningActivity.this, msg);
+                            } catch (JSONException je) {
+                                Utils.showAlert(BagsActivationScanningActivity.this, "Server Error: " + response.code());
+                            }
+                        } catch (Exception e) {
+                            Log.e("SCANNING_UPDATE_GS", "Error parsing response: " + e.getMessage());
+                        }
+                    } else {
+                        Utils.showAlert(BagsActivationScanningActivity.this, "Server error: " + response.code());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
+                progressDialog.cancel();
+                Log.e("SCANNING_UPDATE_GS", "Network error: " + t.getMessage());
+                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
+            }
+        });
     }
 
     private void showConfirmationDialogBeforeFinalSubmit() {
@@ -1065,165 +1374,11 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
         confirmDialog.show();
     }
 
-    private void getWhListForPopup(AutoCompleteTextView dd_wh, AutoCompleteTextView dd_bin, 
-                                    List<com.seedtrac.lotgen.parser.whlist.Data> whList, Dialog dialog) {
-        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
-        final ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Loading...");
-        progressDialog.show();
 
-        Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> call = apiInterface.getWhList(userData.getMobile1(), userData.getScode());
-        call.enqueue(new Callback<com.seedtrac.lotgen.parser.whlist.WhListResponse>() {
-            @SuppressLint("NotifyDataSetChanged")
-            @Override
-            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.whlist.WhListResponse> response) {
-                if (response.isSuccessful()) {
-                    com.seedtrac.lotgen.parser.whlist.WhListResponse whListResponse = response.body();
-                    if (whListResponse != null && whListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.whlist.Data> dataList = whListResponse.getData();
-                        whList.addAll(dataList);
-                        List<String> whNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.whlist.Data w : dataList) {
-                            whNames.add(w.getWhname());
-                        }
-                        ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this, 
-                            android.R.layout.simple_dropdown_item_1line, whNames);
-                        dd_wh.setAdapter(adapter);
-
-                        // WH selection listener
-                        dd_wh.setOnItemClickListener((parent, view, position, id) -> {
-                            com.seedtrac.lotgen.parser.whlist.Data selectedWhData = dataList.get(position);
-                            Integer whId = selectedWhData.getWhid();
-                            getBinListForPopup(whId, dd_bin);
-                        });
-                    }
-                    progressDialog.cancel();
-                } else {
-                    progressDialog.cancel();
-                    Utils.showAlert(BagsActivationScanningActivity.this, "Failed to load WH list");
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> call, @NonNull Throwable t) {
-                progressDialog.cancel();
-                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
-            }
-        });
-    }
-
-    private void getBinListForPopup(Integer whId, AutoCompleteTextView dd_bin) {
-        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
-        final ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Loading...");
-        progressDialog.show();
-
-        Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> call = apiInterface.getBinList(userData.getMobile1(), userData.getScode(), whId);
-        call.enqueue(new Callback<com.seedtrac.lotgen.parser.binlist.BinListResponse>() {
-            @SuppressLint("NotifyDataSetChanged")
-            @Override
-            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.binlist.BinListResponse> response) {
-                if (response.isSuccessful()) {
-                    com.seedtrac.lotgen.parser.binlist.BinListResponse binListResponse = response.body();
-                    if (binListResponse != null && binListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.binlist.Datum> binList = binListResponse.getData();
-                        List<String> binNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.binlist.Datum b : binList) {
-                            binNames.add(b.getBinname());
-                        }
-                        ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this, 
-                            android.R.layout.simple_dropdown_item_1line, binNames);
-                        dd_bin.setAdapter(adapter);
-                    }
-                    progressDialog.cancel();
-                } else {
-                    progressDialog.cancel();
-                    Utils.showAlert(BagsActivationScanningActivity.this, "Failed to load BIN list");
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> call, @NonNull Throwable t) {
-                progressDialog.cancel();
-                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
-            }
-        });
-    }
-
-    private void submitGuardSampleAndProceed(String lot, String barcode, String farmerHandover, Dialog dialog) {
-        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
-        final ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Loading...");
-        progressDialog.show();
-
-        Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), barcode);
-        call.enqueue(new Callback<SubmitSuccessResponse>() {
-            @Override
-            public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
-                if (response.isSuccessful()) {
-                    SubmitSuccessResponse submitResponse = response.body();
-                    if (submitResponse != null && submitResponse.getStatus()) {
-                        dialog.dismiss();
-                        progressDialog.cancel();
-                        Log.e("GuardSample", "Barcode: "+barcode+", Farmer Handover: "+farmerHandover);
-                        // Proceed to MainActivity after guard sample validation
-                        Intent intent = new Intent(BagsActivationScanningActivity.this, MainActivity.class);
-                        startActivity(intent);
-                        finish();
-                    } else {
-                        progressDialog.cancel();
-                        Utils.showAlert(BagsActivationScanningActivity.this, "Invalid barcode");
-                    }
-                } else {
-                    progressDialog.cancel();
-                    Utils.showAlert(BagsActivationScanningActivity.this, "Failed to validate barcode");
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
-                progressDialog.cancel();
-                Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
-            }
-        });
-    }
-
-    /**
-     * Real-time validation of barcode for Guard Sample popup during activation
-     * Validates barcode with 8 or 11 character length
-     */
-    private void validateBarcodeForActivationPopup(String scanResult) {
-        ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
-        Log.e("BarcodeValidation", "Validating barcode: " + scanResult);
-        
-        Call<SubmitSuccessResponse> call = apiInterface.checkGsBarcode(userData.getMobile1(), userData.getScode(), scanResult);
-        call.enqueue(new Callback<SubmitSuccessResponse>() {
-            @Override
-            public void onResponse(@NonNull Call<SubmitSuccessResponse> call, @NonNull Response<SubmitSuccessResponse> response) {
-                if (response.isSuccessful()) {
-                    SubmitSuccessResponse validationResponse = response.body();
-                    if (validationResponse != null) {
-                        if (validationResponse.getStatus()) {
-                            // Valid barcode - show success message
-                            Toast.makeText(BagsActivationScanningActivity.this, "Barcode Valid", Toast.LENGTH_SHORT).show();
-                            Log.e("BarcodeValidation", "Barcode validation successful for: " + scanResult);
-                        } else {
-                            // Invalid barcode - show error message
-                            Toast.makeText(BagsActivationScanningActivity.this, validationResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            Log.e("BarcodeValidation", "Barcode validation failed: " + validationResponse.getMsg());
-                        }
-                    }
-                } else {
-                    Log.e("BarcodeValidation", "API response unsuccessful: " + response.code());
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<SubmitSuccessResponse> call, @NonNull Throwable t) {
-                Log.e("BarcodeValidation", "API call failed: " + t.getMessage());
-                Toast.makeText(BagsActivationScanningActivity.this, "Validation error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
 
 }
+
+
+
+
+

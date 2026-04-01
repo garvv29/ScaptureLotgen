@@ -56,23 +56,45 @@
                 android:layout_marginBottom="16dp" />
 
             <!-- WH and BIN Selection -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:hint="Warehouse"
+                app:endIconMode="dropdown_menu"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <AutoCompleteTextView
+                    android:id="@+id/dd_wh"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:completionThreshold="1"
+                    android:dropDownHeight="wrap_content"
+                    android:dropDownVerticalOffset="8dp"
+                    android:dropDownHorizontalOffset="0dp"
+                    android:padding="16dp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- BIN and CONTAINER Selection -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="12dp"
+                android:weightSum="2">
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="WH"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
+                    android:hint="GS Bin"
                     app:endIconMode="dropdown_menu"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                     <AutoCompleteTextView
-                        android:id="@+id/dd_wh"
+                        android:id="@+id/dd_bin"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="text"
@@ -86,14 +108,14 @@
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="GS Bin"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
+                    android:hint="Container No."
                     app:endIconMode="dropdown_menu"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                     <AutoCompleteTextView
-                        android:id="@+id/dd_bin"
+                        android:id="@+id/dd_subbin"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="text"

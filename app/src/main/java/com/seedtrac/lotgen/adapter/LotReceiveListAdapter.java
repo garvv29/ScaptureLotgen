@@ -59,27 +59,63 @@ public class LotReceiveListAdapter extends RecyclerView.Adapter<LotReceiveListAd
         holder.tvSLOC.setText(transaction.getWhname()+"/"+transaction.getBinname());
         holder.btnEdit.setOnClickListener(v -> {
             if (transaction.getTrantype().equalsIgnoreCase("Roll")){
-                // Check if this lot has already been activated
-                String activationKey = "lot_activated_" + transaction.getLotno();
-                Object activationStatus = SharedPreferences.getInstance(context).getObject(activationKey, String.class);
-                boolean isActivated = activationStatus != null && activationStatus.toString().equals("true");
+                // Check current flow stage to resume from where user left off
+                String flowStageKey = "flow_stage_" + transaction.getLotno();
+                Object flowStageObj = SharedPreferences.getInstance(context).getObject(flowStageKey, String.class);
+                String flowStage = flowStageObj != null ? flowStageObj.toString() : null;
                 
-                if (transaction.getActtrid()>0) {
-                    // Already activated, go directly to print
-                    Intent intent = new Intent(context, PrintBagsLabelActivity.class);
+                Intent intent = null;
+                
+                // Route based on current flow stage or activation status
+                if ("PrintLabel".equals(flowStage)) {
+                    // Continue in PrintLabel
+                    intent = new Intent(context, PrintBagsLabelActivity.class);
                     intent.putExtra("lotNumber", transaction.getLotno());
                     intent.putExtra("harvestdate", transaction.getHarvestdate());
                     intent.putExtra("bagcount", transaction.getNob());
                     intent.putExtra("trid", transaction.getActtrid());
                     intent.putExtra("sourceActivity", "LotReceiveListActivity");
-                    context.startActivity(intent);
-                } else {
-                    // Not yet activated, go to setup form
-                    Intent intent = new Intent(context, BagsActivationSetupActivityPrintRoll.class);
+                } else if ("GuardSample".equals(flowStage)) {
+                    // Continue in PrintLabel (will show GuardSample popup)
+                    intent = new Intent(context, PrintBagsLabelActivity.class);
+                    intent.putExtra("lotNumber", transaction.getLotno());
+                    intent.putExtra("harvestdate", transaction.getHarvestdate());
+                    intent.putExtra("bagcount", transaction.getNob());
+                    intent.putExtra("trid", transaction.getActtrid());
+                    intent.putExtra("sourceActivity", "LotReceiveListActivity");
+                } else if ("BagsActivationSetup".equals(flowStage)) {
+                    // Continue in BagsActivationSetup
+                    intent = new Intent(context, BagsActivationSetupActivityPrintRoll.class);
                     intent.putExtra("lotNumber", transaction.getLotno());
                     intent.putExtra("harvestdate", transaction.getHarvestdate());
                     intent.putExtra("bagcount", transaction.getNob());
                     intent.putExtra("sourceActivity", "LotReceiveListActivity");
+                } else if ("BagsActivationScanning".equals(flowStage)) {
+                    // Continue in BagsActivationScanning
+                    intent = new Intent(context, BagsActivationScanningActivity.class);
+                    intent.putExtra("lotNumber", transaction.getLotno());
+                    intent.putExtra("isPreprinted", false);
+                } else {
+                    // No flow stage saved - check activation status
+                    if (transaction.getActtrid() > 0) {
+                        // Old lot with activation already done - go to PrintLabel
+                        intent = new Intent(context, PrintBagsLabelActivity.class);
+                        intent.putExtra("lotNumber", transaction.getLotno());
+                        intent.putExtra("harvestdate", transaction.getHarvestdate());
+                        intent.putExtra("bagcount", transaction.getNob());
+                        intent.putExtra("trid", transaction.getActtrid());
+                        intent.putExtra("sourceActivity", "LotReceiveListActivity");
+                    } else {
+                        // New lot without activation yet - go to setup form
+                        intent = new Intent(context, BagsActivationSetupActivityPrintRoll.class);
+                        intent.putExtra("lotNumber", transaction.getLotno());
+                        intent.putExtra("harvestdate", transaction.getHarvestdate());
+                        intent.putExtra("bagcount", transaction.getNob());
+                        intent.putExtra("sourceActivity", "LotReceiveListActivity");
+                    }
+                }
+                
+                if (intent != null) {
                     context.startActivity(intent);
                 }
             }else {

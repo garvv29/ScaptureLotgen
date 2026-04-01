@@ -86,7 +86,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:visibility="gone">
+                    android:visibility="gone"
+                    >
 
                     <!-- Lot Number (Read-only) - Hidden from user view -->
                     <com.google.android.material.textfield.TextInputLayout
@@ -107,7 +108,7 @@
                             android:textColor="@color/textdata_color" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Barcode Scan -->
+                    <!-- Barcode Scan - Full Width -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -124,14 +125,37 @@
                             android:textColor="@color/textdata_color" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- WH and GS BIN side by side -->
+                    <!-- WH Dropdown - Full Width -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="15dp"
+                        app:endIconMode="dropdown_menu"
+                        app:boxBackgroundColor="@android:color/white"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/dd_wh_popup"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:minHeight="50dp"
+                            android:hint="Warehouse"
+                            android:inputType="none"
+                            android:textColor="@color/textdata_color"
+                            android:textSize="16sp"
+                            android:padding="12dp"
+                            android:focusable="true"
+                            android:focusableInTouchMode="false" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- GS BIN and GS SUBBIN side by side - Half Width Each -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:layout_marginBottom="15dp">
 
-                        <!-- WH Dropdown - 60% width -->
+                        <!-- GS BIN Dropdown - 50% width -->
                         <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -142,11 +166,11 @@
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                             <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                                android:id="@+id/dd_wh_popup"
+                                android:id="@+id/dd_bin_popup"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:minHeight="50dp"
-                                android:hint="WH"
+                                android:hint="GS Bin"
                                 android:inputType="none"
                                 android:textColor="@color/textdata_color"
                                 android:textSize="16sp"
@@ -155,22 +179,22 @@
                                 android:focusableInTouchMode="false" />
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <!-- GS BIN Dropdown - 35% width -->
+                        <!-- GS SUB BIN Dropdown - 50% width -->
                         <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="45"
+                            android:layout_weight="50"
                             android:layout_marginStart="8dp"
                             app:endIconMode="dropdown_menu"
                             app:boxBackgroundColor="@android:color/white"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                             <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                                android:id="@+id/dd_bin_popup"
+                                android:id="@+id/dd_subbin_popup"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:minHeight="50dp"
-                                android:hint="GS Bin"
+                                android:hint="Container No."
                                 android:inputType="none"
                                 android:textColor="@color/textdata_color"
                                 android:textSize="16sp"

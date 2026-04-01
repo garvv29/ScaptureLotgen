@@ -46,22 +46,6 @@
                 android:textSize="14sp"
                 android:layout_marginBottom="16dp" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="12dp"
-                android:hint="Farmer ID"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etFarmerID"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:maxLength="25"
-                    android:inputType="text" />
-            </com.google.android.material.textfield.TextInputLayout>
-
             <!-- Lot Number -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_ddLot"

@@ -11,4 +11,5 @@
     <color name="textdata_color">#374151</color>
     <color name="light_grey">#DDDDDD</color>
     <color name="dark_grey">#BABABA</color>
+    <color name="light_green">#4CAF50</color>
 </resources>

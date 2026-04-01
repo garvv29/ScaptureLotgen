@@ -15,7 +15,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsetsController;
-import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
@@ -34,7 +33,6 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.textfield.TextInputLayout;
 import com.seedtrac.lotgen.R;
-import com.seedtrac.lotgen.communicator.alertCommunicator;
 import com.seedtrac.lotgen.parser.actlotlist.ActLotListResponse;
 import com.seedtrac.lotgen.parser.binlist.BinListResponse;
 import com.seedtrac.lotgen.parser.binlist.Datum;
@@ -68,7 +66,7 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
     private AutoCompleteTextView actLotNumber, dd_wh, dd_bin, dd_subbin;
     private TextView tvCrop, tvSpCodef, tvSpCodem, tvProductionPerson;
     private LinearLayout ll_lotinfo;
-    private EditText etHarvestDate, etNumberOfBags, etLotNumber, etFarmerID;
+    private EditText etHarvestDate, etNumberOfBags, etLotNumber;
     private Button btnSubmit;
     private List<String> lots=new ArrayList<>();
     private List<Data> whlist=new ArrayList<>();
@@ -117,6 +115,16 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh lot data when returning to this activity
+        // Ensures latest status from server when coming back from PrintBagsLabelActivity
+        if (lotnumber != null && !lotnumber.isEmpty()) {
+            getLotInfo(lotnumber);
+        }
+    }
+
     @SuppressLint("SetTextI18n")
     private void setTheme() {
 
@@ -128,7 +136,6 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
         etHarvestDate = findViewById(R.id.etHarvestDate);
         etNumberOfBags = findViewById(R.id.etNumberOfBags);
         etLotNumber = findViewById(R.id.etLotNumber);
-        etFarmerID = findViewById(R.id.etFarmerID);
         ll_lotinfo = findViewById(R.id.ll_lotinfo);
         tvCrop = findViewById(R.id.tvCrop);
         tvSpCodef = findViewById(R.id.tvSpCodef);
@@ -153,6 +160,7 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
         binId = getIntent().getIntExtra("binid", 0);
         trid = getIntent().getIntExtra("trid", 0);
         rowid = getIntent().getIntExtra("rowid", 0);
+        String incomingTagType = getIntent().getStringExtra("tagType");
 
         userData = (User) com.seedtrac.lotgen.sessionmanager.SharedPreferences.getInstance(this).getObject(SharedPreferences.KEY_LOGIN_OBJ, User.class);
         if (lotnumber.isEmpty()){
@@ -168,18 +176,21 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
             dd_bin.setText(binname);
             etHarvestDate.setText(harvestdate);
             etNumberOfBags.setText(bagcount.toString());
+            if (incomingTagType != null && incomingTagType.equalsIgnoreCase("Roll")) {
+                rbPrintRollTags.setChecked(true);
+                rbPreprintedTags.setChecked(false);
+            } else if (incomingTagType != null && incomingTagType.equalsIgnoreCase("Preprinted")) {
+                rbPreprintedTags.setChecked(true);
+                rbPrintRollTags.setChecked(false);
+            }
             getLotInfo(lotnumber);
         }
-
-        etFarmerID.requestFocus();
-        // Set the listener
-        etFarmerID.setOnEditorActionListener(this);
     }
 
     private void init(){
         if (lotnumber.isEmpty()){
             etHarvestDate.setOnClickListener(v -> showDatePicker());
-            //getLotList();
+            getLotList("");  // Load lot list on page open (empty string for all lots)
         }
 
         etLotNumber.addTextChangedListener(new TextWatcher() {
@@ -221,10 +232,10 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
         btnSubmit.setOnClickListener(v -> validateAndSubmit());
     }
 
-    // Implement the onEditorAction method
+    // COMMENTED: Farmer ID search disabled - using auto-loaded lot list instead
     @Override
     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-        if (actionId == EditorInfo.IME_ACTION_DONE || event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
+        /*if (actionId == EditorInfo.IME_ACTION_DONE || event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
             // Handle the "Enter" or "Done" action here
             // For example, you can perform validation or submit the form
             if (!etFarmerID.getText().toString().isEmpty()) {
@@ -233,7 +244,8 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
             }
             return true;// Consume the event
         }
-        return false;// Return false if you didn't handle the event
+        return false;// Return false if you didn't handle the event*/
+        return false;
     }
 
     private String getLotValue(){
@@ -317,7 +329,8 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                             Log.e("TagType Check", "updateLot - tagType: " + tagType);
                             if (tagType != null && tagType.equalsIgnoreCase("Roll")){
                                 Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
-                                Intent intent = new Intent(LotReceiveActivity.this, PrintBagsLabelActivity.class);
+                                // ✅ NEW FLOW: Go to BagsActivationSetupPrintRoll first for setup
+                                Intent intent = new Intent(LotReceiveActivity.this, BagsActivationSetupActivityPrintRoll.class);
                                 intent.putExtra("lotNumber", lot);
                                 intent.putExtra("harvestdate", harvestDate);
                                 intent.putExtra("bagcount", bagcount);
@@ -346,12 +359,16 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                     progressDialog.cancel();
                     if (response.errorBody() != null) {
                         try {
-                            JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
-                            String msg = jsonObj.getString("msg");
-                            Utils.showAlert(LotReceiveActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                            String errorBodyStr = TextStreamsKt.readText(response.errorBody().charStream());
+                            try {
+                                JSONObject jsonObj = new JSONObject(errorBodyStr);
+                                String msg = jsonObj.optString("msg", "API Error: " + response.code());
+                                Utils.showAlert(LotReceiveActivity.this, msg);
+                            } catch (JSONException je) {
+                                Utils.showAlert(LotReceiveActivity.this, "Server Error: " + response.code());
+                            }
+                        } catch (Exception e) {
+                            Utils.showAlert(LotReceiveActivity.this, "Error: " + e.getMessage());
                         }
                     }
                 }
@@ -386,7 +403,8 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                             Log.e("TagType Check", "submitForm - tagType: " + tagType);
                             Toast.makeText(LotReceiveActivity.this, lotRecSubmitSuccess.getMsg(), Toast.LENGTH_SHORT).show();
                             if (tagType != null && tagType.equalsIgnoreCase("Roll")){
-                                Intent intent = new Intent(LotReceiveActivity.this, PrintBagsLabelActivity.class);
+                                // ✅ NEW FLOW: Go to BagsActivationSetupPrintRoll first for setup
+                                Intent intent = new Intent(LotReceiveActivity.this, BagsActivationSetupActivityPrintRoll.class);
                                 intent.putExtra("lotNumber", lot);
                                 intent.putExtra("harvestdate", harvestDate);
                                 intent.putExtra("bagcount", bagcount);
@@ -414,12 +432,16 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                     progressDialog.cancel();
                     if (response.errorBody() != null) {
                         try {
-                            JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
-                            String msg = jsonObj.getString("msg");
-                            Utils.showAlert(LotReceiveActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                            String errorBodyStr = TextStreamsKt.readText(response.errorBody().charStream());
+                            try {
+                                JSONObject jsonObj = new JSONObject(errorBodyStr);
+                                String msg = jsonObj.optString("msg", "API Error: " + response.code());
+                                Utils.showAlert(LotReceiveActivity.this, msg);
+                            } catch (JSONException je) {
+                                Utils.showAlert(LotReceiveActivity.this, "Server Error: " + response.code());
+                            }
+                        } catch (Exception e) {
+                            Utils.showAlert(LotReceiveActivity.this, "Error: " + e.getMessage());
                         }
                     }
                 }
@@ -479,23 +501,40 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                     progressDialog.cancel();
                     if (response.errorBody() != null) {
                         try {
-                            JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
-                            String msg = jsonObj.getString("msg");
-                            Utils.showAlert(LotReceiveActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                            String errorBodyStr = TextStreamsKt.readText(response.errorBody().charStream());
+                            Log.e("APIError", "Error Response: " + errorBodyStr);
+
+                            // Try parsing as JSON first
+                            try {
+                                JSONObject jsonObj = new JSONObject(errorBodyStr);
+                                String msg = jsonObj.optString("msg", "API Error: " + response.code());
+                                Utils.showAlert(LotReceiveActivity.this, msg);
+                            } catch (JSONException je) {
+                                // If not JSON, show generic error
+                                Log.e("JSONParseError", "Response is not JSON: " + errorBodyStr);
+                                Utils.showAlert(LotReceiveActivity.this, "Server Error: " + response.code() + "\nPlease check lot number and try again");
+                            }
+                        } catch (Exception e) {
+                            Log.e("Error", "Error parsing response: " + e.getMessage());
+                            Utils.showAlert(LotReceiveActivity.this, "Error: " + e.getMessage());
                         }
+                    } else {
+                        Utils.showAlert(LotReceiveActivity.this, "API Error: " + response.code());
                     }
                 }
             }
-
             @Override
             public void onFailure(@NonNull Call<LotInfoResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
-                Log.e("Error", "RetrofitError : " + t.getMessage());
-                Utils.showAlert(LotReceiveActivity.this,"RetrofitError : " + t.getMessage());
-                //Toast.makeText(BagsActivationSetupActivity.this, "RetrofitError : " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e("RetrofitError", "Error: " + t.getClass().getSimpleName() + " - " + t.getMessage());
+                t.printStackTrace();
+                String errorMsg = "Connection Error";
+                if (t.getMessage() != null && t.getMessage().contains("End of input")) {
+                    errorMsg = "Invalid response from server. Check internet connection and try again.";
+                } else {
+                    errorMsg = "Error: " + t.getMessage();
+                }
+                Utils.showAlert(LotReceiveActivity.this, errorMsg);
             }
         });
     }
@@ -536,12 +575,16 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                     progressDialog.cancel();
                     if (response.errorBody() != null) {
                         try {
-                            JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
-                            String msg = jsonObj.getString("msg");
-                            Utils.showAlert(LotReceiveActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                            String errorBodyStr = TextStreamsKt.readText(response.errorBody().charStream());
+                            try {
+                                JSONObject jsonObj = new JSONObject(errorBodyStr);
+                                String msg = jsonObj.optString("msg", "Error: " + response.code());
+                                Utils.showAlert(LotReceiveActivity.this, msg);
+                            } catch (JSONException je) {
+                                Utils.showAlert(LotReceiveActivity.this, "Error: " + response.code());
+                            }
+                        } catch (Exception e) {
+                            Log.e("Error", e.getMessage());
                         }
                     }
                 }
@@ -597,12 +640,16 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                     progressDialog.cancel();
                     if (response.errorBody() != null) {
                         try {
-                            JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
-                            String msg = jsonObj.getString("msg");
-                            Utils.showAlert(LotReceiveActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                            String errorBodyStr = TextStreamsKt.readText(response.errorBody().charStream());
+                            try {
+                                JSONObject jsonObj = new JSONObject(errorBodyStr);
+                                String msg = jsonObj.optString("msg", "Error: " + response.code());
+                                Utils.showAlert(LotReceiveActivity.this, msg);
+                            } catch (JSONException je) {
+                                Utils.showAlert(LotReceiveActivity.this, "Error: " + response.code());
+                            }
+                        } catch (Exception e) {
+                            Log.e("Error", e.getMessage());
                         }
                     }
                 }
@@ -654,12 +701,16 @@ public class LotReceiveActivity extends AppCompatActivity implements TextView.On
                     progressDialog.cancel();
                     if (response.errorBody() != null) {
                         try {
-                            JSONObject jsonObj = new JSONObject(TextStreamsKt.readText(response.errorBody().charStream()));
-                            String msg = jsonObj.getString("msg");
-                            Utils.showAlert(LotReceiveActivity.this,msg);
-                            //Toast.makeText(BagsActivationSetupActivity.this, msg, Toast.LENGTH_SHORT).show();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                            String errorBodyStr = TextStreamsKt.readText(response.errorBody().charStream());
+                            try {
+                                JSONObject jsonObj = new JSONObject(errorBodyStr);
+                                String msg = jsonObj.optString("msg", "Error: " + response.code());
+                                Utils.showAlert(LotReceiveActivity.this, msg);
+                            } catch (JSONException je) {
+                                Utils.showAlert(LotReceiveActivity.this, "Error: " + response.code());
+                            }
+                        } catch (Exception e) {
+                            Log.e("Error", e.getMessage());
                         }
                     }
                 }
