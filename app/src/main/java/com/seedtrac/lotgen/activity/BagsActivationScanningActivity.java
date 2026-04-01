@@ -63,6 +63,8 @@ import com.seedtrac.lotgen.retrofit.ApiInterface;
 import com.seedtrac.lotgen.retrofit.RetrofitClient;
 import com.seedtrac.lotgen.sessionmanager.SharedPreferences;
 import com.seedtrac.lotgen.utils.Utils;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinListResponse;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinData;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -983,7 +985,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
                 guardSampleDetailsContainer.setVisibility(View.VISIBLE);
                 
                 // Load WH List only when Yes is selected
-                List<com.seedtrac.lotgen.parser.whlist.Data> whList = new ArrayList<>();
+                List<com.seedtrac.lotgen.parser.gswhlist.GsData> whList = new ArrayList<>();
                 dd_wh_popup.setOnClickListener(v -> dd_wh_popup.showDropDown());
                 dd_bin_popup.setOnClickListener(v -> dd_bin_popup.showDropDown());
                 dd_subbin_popup.setOnClickListener(view -> dd_subbin_popup.showDropDown());
@@ -1130,26 +1132,29 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
     }
 
     private void getWhListForActivationPopup(AutoCompleteTextView dd_wh, AutoCompleteTextView dd_bin, 
-                                    List<com.seedtrac.lotgen.parser.whlist.Data> whList, Dialog dialog,
+                                    List<com.seedtrac.lotgen.parser.gswhlist.GsData> whList, Dialog dialog,
                                     Integer[] selectedWhId, Integer[] selectedBinId, Integer[] selectedSubbinId) {
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
-        Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> call = apiInterface.getWhList(userData.getMobile1(), userData.getScode());
-        call.enqueue(new Callback<com.seedtrac.lotgen.parser.whlist.WhListResponse>() {
+        Call<com.seedtrac.lotgen.parser.gswhlist.WhListResponse> call = apiInterface.getGsWhList(userData.getMobile1(), userData.getScode());
+        call.enqueue(new Callback<com.seedtrac.lotgen.parser.gswhlist.WhListResponse>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
-            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.whlist.WhListResponse> response) {
+            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.gswhlist.WhListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.gswhlist.WhListResponse> response) {
                 if (response.isSuccessful()) {
-                    com.seedtrac.lotgen.parser.whlist.WhListResponse whListResponse = response.body();
+                    com.seedtrac.lotgen.parser.gswhlist.WhListResponse whListResponse = response.body();
                     if (whListResponse != null && whListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.whlist.Data> dataList = whListResponse.getData();
+                        List<com.seedtrac.lotgen.parser.gswhlist.GsData> dataList = whListResponse.getData();
                         whList.addAll(dataList);
                         List<String> whNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.whlist.Data w : dataList) {
+                        for (com.seedtrac.lotgen.parser.gswhlist.GsData w : dataList) {
+                        if (w.getWhname() != null) {
                             whNames.add(w.getWhname());
+                        }
+
                         }
                         ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this, 
                             android.R.layout.simple_dropdown_item_1line, whNames);
@@ -1157,7 +1162,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
 
                         // WH selection listener with ID storage
                         dd_wh.setOnItemClickListener((parent, view, position, id) -> {
-                            com.seedtrac.lotgen.parser.whlist.Data selectedWhData = dataList.get(position);
+                            com.seedtrac.lotgen.parser.gswhlist.GsData selectedWhData = dataList.get(position);
                             Integer whId = selectedWhData.getWhid();
                             selectedWhId[0] = whId;  // Store WH ID
                             selectedBinId[0] = null; // Reset BIN and SUBBIN when WH changes
@@ -1176,7 +1181,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> call, @NonNull Throwable t) {
+            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.gswhlist.WhListResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
             }
@@ -1189,18 +1194,21 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
-        Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> call = apiInterface.getBinList(userData.getMobile1(), userData.getScode(), whId);
-        call.enqueue(new Callback<com.seedtrac.lotgen.parser.binlist.BinListResponse>() {
+        Call<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse> call = apiInterface.getGsBinList(userData.getMobile1(), userData.getScode(), whId);
+        call.enqueue(new Callback<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
-            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.binlist.BinListResponse> response) {
+            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse> response) {
                 if (response.isSuccessful()) {
-                    com.seedtrac.lotgen.parser.binlist.BinListResponse binListResponse = response.body();
+                    com.seedtrac.lotgen.parser.gsbinlist.BinListResponse binListResponse = response.body();
                     if (binListResponse != null && binListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.binlist.Datum> binList = binListResponse.getData();
+                        List<com.seedtrac.lotgen.parser.gsbinlist.GsDatum> binList = binListResponse.getData();
                         List<String> binNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.binlist.Datum b : binList) {
+                        for (com.seedtrac.lotgen.parser.gsbinlist.GsDatum b : binList) {
+                        if (b.getBinname() != null) {
                             binNames.add(b.getBinname());
+                        }
+
                         }
                         ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this, 
                             android.R.layout.simple_dropdown_item_1line, binNames);
@@ -1208,7 +1216,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
 
                         // BIN selection listener with ID storage and SUBBIN loading
                         dd_bin.setOnItemClickListener((parent, view, position, id) -> {
-                            com.seedtrac.lotgen.parser.binlist.Datum selectedBinData = binList.get(position);
+                            com.seedtrac.lotgen.parser.gsbinlist.GsDatum selectedBinData = binList.get(position);
                             Integer binId = selectedBinData.getBinid();
                             selectedBinId[0] = binId;  // Store BIN ID
                             selectedSubbinId[0] = null; // Reset SUBBIN when BIN changes
@@ -1224,7 +1232,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> call, @NonNull Throwable t) {
+            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
             }
@@ -1237,30 +1245,38 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
-        Call<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse> call = apiInterface.getSubbinList(userData.getMobile1(), userData.getScode(), whId, binId);
-        call.enqueue(new Callback<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse>() {
+        Call<GsSubBinListResponse> call = apiInterface.getGsSubbinList(userData.getMobile1(), userData.getScode(), whId, binId);
+        call.enqueue(new Callback<GsSubBinListResponse>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
-            public void onResponse(@NonNull Call<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse> call, @NonNull Response<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse> response) {
+            public void onResponse(@NonNull Call<GsSubBinListResponse> call, @NonNull Response<GsSubBinListResponse> response) {
                 if (response.isSuccessful()) {
-                    com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse subbinListResponse = response.body();
-                    if (subbinListResponse != null && subbinListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.subbinlist.Datum1> subbinList = subbinListResponse.getData();
-                        List<String> subbinNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.subbinlist.Datum1 b : subbinList) {
-                            subbinNames.add(b.getSubbinname());
-                        }
-                        ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this,
-                                android.R.layout.simple_dropdown_item_1line, subbinNames);
-                        dd_subbin.setAdapter(adapter);
+                    GsSubBinListResponse subbinListResponse = response.body();
+                    if (subbinListResponse != null) {
+                        List<GsSubBinData> subbinList = subbinListResponse.getData();
+                        if (subbinList != null && !subbinList.isEmpty()) {
+                            List<String> subbinNames = new ArrayList<>();
+                            for (GsSubBinData b : subbinList) {
+                                if (b.getOutercontainer() != null) {
+                                    subbinNames.add(b.getOutercontainer());
+                                }
+                            }
+                            ArrayAdapter<String> adapter = new ArrayAdapter<>(BagsActivationScanningActivity.this,
+                                    android.R.layout.simple_dropdown_item_1line, subbinNames);
+                            dd_subbin.setAdapter(adapter);
 
-                        // SUBBIN selection listener with ID storage
-                        dd_subbin.setOnItemClickListener((parent, view, position, id) -> {
-                            com.seedtrac.lotgen.parser.subbinlist.Datum1 selectedSubbinData = subbinList.get(position);
-                            Integer subbinId = selectedSubbinData.getSubbinid();
-                            selectedSubbinId[0] = subbinId;  // Store SUBBIN ID
-                            Log.d("SCANNING_SUBBIN", "Selected SUBBIN ID: " + subbinId);
-                        });
+                            // SUBBIN selection listener with ID storage
+                            dd_subbin.setOnItemClickListener((parent, view, position, id) -> {
+                                GsSubBinData selectedSubbinData = subbinList.get(position);
+                                Integer subbinId = selectedSubbinData.getBinid();
+                                selectedSubbinId[0] = subbinId;  // Store SUBBIN ID
+                                Log.d("SCANNING_SUBBIN", "Selected SUBBIN ID: " + subbinId);
+                            });
+                        } else {
+                            Utils.showAlert(BagsActivationScanningActivity.this, "No SubBin data available");
+                        }
+                    } else {
+                        Utils.showAlert(BagsActivationScanningActivity.this, "Empty response from server");
                     }
                     progressDialog.cancel();
                 } else {
@@ -1270,7 +1286,7 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(@NonNull Call<com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse> call, @NonNull Throwable t) {
+            public void onFailure(@NonNull Call<GsSubBinListResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Utils.showAlert(BagsActivationScanningActivity.this, "Error: " + t.getMessage());
             }
@@ -1361,3 +1377,8 @@ public class BagsActivationScanningActivity extends AppCompatActivity {
 
 
 }
+
+
+
+
+

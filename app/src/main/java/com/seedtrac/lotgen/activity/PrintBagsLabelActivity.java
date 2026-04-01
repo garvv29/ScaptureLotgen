@@ -60,12 +60,14 @@ import com.seedtrac.lotgen.parser.login.User;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoData;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoResponse;
 import com.seedtrac.lotgen.parser.printlabel.PrintLabelInfo;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinListResponse;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinData;
 import com.seedtrac.lotgen.parser.printlabel.Qrarray;
-import com.seedtrac.lotgen.parser.subbinlist.Datum1;
-import com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse;
+
+
 import com.seedtrac.lotgen.parser.submitsuccess.SubmitSuccessResponse;
-import com.seedtrac.lotgen.parser.whlist.WhListResponse;
-import com.seedtrac.lotgen.parser.binlist.BinListResponse;
+import com.seedtrac.lotgen.parser.gswhlist.WhListResponse;
+import com.seedtrac.lotgen.parser.gsbinlist.BinListResponse;
 import com.seedtrac.lotgen.retrofit.ApiInterface;
 import com.seedtrac.lotgen.retrofit.RetrofitClient;
 import com.seedtrac.lotgen.sessionmanager.SharedPreferences;
@@ -1145,7 +1147,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 guardSampleDetailsContainer.setVisibility(View.VISIBLE);
                 
                 // Load WH List only when Yes is selected
-                List<com.seedtrac.lotgen.parser.whlist.Data> whList = new ArrayList<>();
+                List<com.seedtrac.lotgen.parser.gswhlist.GsData> whList = new ArrayList<>();
                 dd_wh_popup.setOnClickListener(v -> dd_wh_popup.showDropDown());
                 dd_bin_popup.setOnClickListener(v -> dd_bin_popup.showDropDown());
                 dd_subbin_popup.setOnClickListener(view -> dd_subbin_popup.showDropDown());
@@ -1241,7 +1243,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
     // Helper method to update submit button state
     @SuppressLint("SetTextI18n")
     private void updateSubmitButtonState(MaterialButton btnSubmit, boolean isBarcodeValid, Integer whId, Integer binId, Integer subbinId) {
-        boolean allFieldsValid = whId != null && binId != null && subbinId != null;
+        boolean allFieldsValid = isBarcodeValid && whId != null && binId != null && subbinId != null;
         btnSubmit.setEnabled(allFieldsValid);
         btnSubmit.setAlpha(allFieldsValid ? 1.0f : 0.5f);
     }
@@ -1296,7 +1298,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
     }
 
     private void getWhListForPopup(AutoCompleteTextView dd_wh, AutoCompleteTextView dd_bin, 
-                                    List<com.seedtrac.lotgen.parser.whlist.Data> whList, Dialog dialog,
+                                    List<com.seedtrac.lotgen.parser.gswhlist.GsData> whList, Dialog dialog,
                                     Integer[] selectedWhId, Integer[] selectedBinId, Integer[] selectedSubbinId,
                                     MaterialButton btnSubmit, boolean[] isBarcodeValid) {
         ApiInterface apiInterface = RetrofitClient.getRetrofitInstance().create(ApiInterface.class);
@@ -1304,7 +1306,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
-        Call<WhListResponse> call = apiInterface.getWhList(userData.getMobile1(), userData.getScode());
+        Call<WhListResponse> call = apiInterface.getGsWhList(userData.getMobile1(), userData.getScode());
         call.enqueue(new Callback<WhListResponse>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -1312,11 +1314,14 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 if (response.isSuccessful()) {
                     WhListResponse whListResponse = response.body();
                     if (whListResponse != null && whListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.whlist.Data> dataList = whListResponse.getData();
+                        List<com.seedtrac.lotgen.parser.gswhlist.GsData> dataList = whListResponse.getData();
                         whList.addAll(dataList);
                         List<String> whNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.whlist.Data w : dataList) {
+                        for (com.seedtrac.lotgen.parser.gswhlist.GsData w : dataList) {
+                        if (w.getWhname() != null) {
                             whNames.add(w.getWhname());
+                        }
+
                         }
                         ArrayAdapter<String> adapter = new ArrayAdapter<>(PrintBagsLabelActivity.this, 
                             android.R.layout.simple_dropdown_item_1line, whNames);
@@ -1324,7 +1329,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
                         // WH selection listener
                         dd_wh.setOnItemClickListener((parent, view, position, id) -> {
-                            com.seedtrac.lotgen.parser.whlist.Data selectedWhData = dataList.get(position);
+                            com.seedtrac.lotgen.parser.gswhlist.GsData selectedWhData = dataList.get(position);
                             Integer whId = selectedWhData.getWhid();
                             selectedWhId[0] = whId;  // Store WH ID
                             selectedBinId[0] = null; // Reset BIN and SUBBIN when WH changes
@@ -1358,7 +1363,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
-        Call<BinListResponse> call = apiInterface.getBinList(userData.getMobile1(), userData.getScode(), whId);
+        Call<BinListResponse> call = apiInterface.getGsBinList(userData.getMobile1(), userData.getScode(), whId);
         call.enqueue(new Callback<BinListResponse>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -1366,10 +1371,13 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 if (response.isSuccessful()) {
                     BinListResponse binListResponse = response.body();
                     if (binListResponse != null && binListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.binlist.Datum> binList = binListResponse.getData();
+                        List<com.seedtrac.lotgen.parser.gsbinlist.GsDatum> binList = binListResponse.getData();
                         List<String> binNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.binlist.Datum b : binList) {
+                        for (com.seedtrac.lotgen.parser.gsbinlist.GsDatum b : binList) {
+                        if (b.getBinname() != null) {
                             binNames.add(b.getBinname());
+                        }
+
                         }
                         ArrayAdapter<String> adapter = new ArrayAdapter<>(PrintBagsLabelActivity.this, 
                             android.R.layout.simple_dropdown_item_1line, binNames);
@@ -1377,7 +1385,7 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
 
                         // BIN selection listener
                         dd_bin.setOnItemClickListener((parent, view, position, id) -> {
-                            com.seedtrac.lotgen.parser.binlist.Datum selectedBinData = binList.get(position);
+                            com.seedtrac.lotgen.parser.gsbinlist.GsDatum selectedBinData = binList.get(position);
                             Integer binId = selectedBinData.getBinid();
                             selectedBinId[0] = binId;  // Store BIN ID
                             selectedSubbinId[0] = null; // Reset SUBBIN when BIN changes
@@ -1408,42 +1416,50 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
         progressDialog.setMessage("Loading...");
         progressDialog.show();
 
-        Call<SubBinListResponse> call = apiInterface.getSubbinList(userData.getMobile1(), userData.getScode(), whId, binId);
-        call.enqueue(new Callback<SubBinListResponse>() {
+        Call<GsSubBinListResponse> call = apiInterface.getGsSubbinList(userData.getMobile1(), userData.getScode(), whId, binId);
+        call.enqueue(new Callback<GsSubBinListResponse>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
-            public void onResponse(@NonNull Call<SubBinListResponse> call, @NonNull Response<SubBinListResponse> response) {
+            public void onResponse(@NonNull Call<GsSubBinListResponse> call, @NonNull Response<GsSubBinListResponse> response) {
                 if (response.isSuccessful()) {
-                    SubBinListResponse subbinListResponse = response.body();
-                    if (subbinListResponse != null && subbinListResponse.getStatus()) {
-                        List<com.seedtrac.lotgen.parser.subbinlist.Datum1> subbinList = subbinListResponse.getData();
-                        List<String> binNames = new ArrayList<>();
-                        for (com.seedtrac.lotgen.parser.subbinlist.Datum1 b : subbinList) {
-                            binNames.add(b.getSubbinname());
-                        }
-                        ArrayAdapter<String> adapter = new ArrayAdapter<>(PrintBagsLabelActivity.this,
-                                android.R.layout.simple_dropdown_item_1line, binNames);
-                        dd_subbin.setAdapter(adapter);
+                    GsSubBinListResponse subbinListResponse = response.body();
+                    if (subbinListResponse != null) {
+                        List<GsSubBinData> subbinList = subbinListResponse.getData();
+                        if (subbinList != null && !subbinList.isEmpty()) {
+                            List<String> binNames = new ArrayList<>();
+                            for (GsSubBinData b : subbinList) {
+                                if (b.getOutercontainer() != null) {
+                                    binNames.add(b.getOutercontainer());
+                                }
+                            }
+                            ArrayAdapter<String> adapter = new ArrayAdapter<>(PrintBagsLabelActivity.this,
+                                    android.R.layout.simple_dropdown_item_1line, binNames);
+                            dd_subbin.setAdapter(adapter);
 
-                        // SUBBIN selection listener
-                        dd_subbin.setOnItemClickListener((parent, view, position, id) -> {
-                            com.seedtrac.lotgen.parser.subbinlist.Datum1 selectedSubbinData = subbinList.get(position);
-                            Integer subbinId = selectedSubbinData.getSubbinid();
-                            selectedSubbinId[0] = subbinId;  // Store SUBBIN ID
-                            Log.d("POPUP_SUBBIN", "Selected SUBBIN ID: " + subbinId);
-                            // Update button state when SUBBIN is selected
-                            updateSubmitButtonState(btnSubmit, isBarcodeValid[0], whId, binId, subbinId);
-                        });
+                            // SUBBIN selection listener
+                            dd_subbin.setOnItemClickListener((parent, view, position, id) -> {
+                                GsSubBinData selectedSubbinData = subbinList.get(position);
+                                Integer subbinId = selectedSubbinData.getBinid();
+                                selectedSubbinId[0] = subbinId;  // Store SUBBIN ID
+                                Log.d("POPUP_SUBBIN", "Selected SUBBIN ID: " + subbinId);
+                                // Update button state when SUBBIN is selected
+                                updateSubmitButtonState(btnSubmit, isBarcodeValid[0], whId, binId, subbinId);
+                            });
+                        } else {
+                            Utils.showAlert(PrintBagsLabelActivity.this, "No SubBin data available");
+                        }
+                    } else {
+                        Utils.showAlert(PrintBagsLabelActivity.this, "Empty response from server");
                     }
                     progressDialog.cancel();
                 } else {
                     progressDialog.cancel();
-                    Utils.showAlert(PrintBagsLabelActivity.this, "Failed to load BIN list");
+                    Utils.showAlert(PrintBagsLabelActivity.this, "Failed to load SubBin list");
                 }
             }
 
             @Override
-            public void onFailure(@NonNull Call<SubBinListResponse> call, @NonNull Throwable t) {
+            public void onFailure(@NonNull Call<GsSubBinListResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Utils.showAlert(PrintBagsLabelActivity.this, "Error: " + t.getMessage());
             }
@@ -1478,12 +1494,14 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
                 if (response.isSuccessful()) {
                     SubmitSuccessResponse submitResponse = response.body();
                     if (submitResponse != null && submitResponse.getStatus()) {
-                        Toast.makeText(PrintBagsLabelActivity.this, submitResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(PrintBagsLabelActivity.this, "Guard sample saved successfully", Toast.LENGTH_SHORT).show();
                         Log.d("POPUP_UPDATE_GS", "Success: " + submitResponse.getMsg());
                         
-                        // Dismiss dialog and proceed with final submission
+                        // Dismiss dialog and return to main
                         dialog.dismiss();
-                        finalSubmit();
+                        Intent intent = new Intent(PrintBagsLabelActivity.this, MainActivity.class);
+                        startActivity(intent);
+                        finish();
                     } else {
                         Utils.showAlert(PrintBagsLabelActivity.this, submitResponse != null ? submitResponse.getMsg() : "Failed to save guard sample details");
                     }
@@ -1588,3 +1606,8 @@ public class PrintBagsLabelActivity extends AppCompatActivity implements TextVie
     }
 
 }
+
+
+
+
+

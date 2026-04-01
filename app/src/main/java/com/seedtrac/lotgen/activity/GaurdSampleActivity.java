@@ -35,16 +35,17 @@ import com.seedtrac.lotgen.MainActivity;
 import com.seedtrac.lotgen.R;
 import com.seedtrac.lotgen.communicator.alertCommunicator;
 import com.seedtrac.lotgen.parser.actlotlist.ActLotListResponse;
-import com.seedtrac.lotgen.parser.binlist.BinListResponse;
-import com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse;
-import com.seedtrac.lotgen.parser.binlist.Datum;
-import com.seedtrac.lotgen.parser.subbinlist.Datum1;
+import com.seedtrac.lotgen.parser.gsbinlist.BinListResponse;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinListResponse;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinData;
+import com.seedtrac.lotgen.parser.gsbinlist.GsDatum;
+
 import com.seedtrac.lotgen.parser.login.User;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoData;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoResponse;
 import com.seedtrac.lotgen.parser.submitsuccess.SubmitSuccessResponse;
-import com.seedtrac.lotgen.parser.whlist.Data;
-import com.seedtrac.lotgen.parser.whlist.WhListResponse;
+import com.seedtrac.lotgen.parser.gswhlist.GsData;
+import com.seedtrac.lotgen.parser.gswhlist.WhListResponse;
 import com.seedtrac.lotgen.retrofit.ApiInterface;
 import com.seedtrac.lotgen.retrofit.RetrofitClient;
 import com.seedtrac.lotgen.sessionmanager.SharedPreferences;
@@ -70,11 +71,11 @@ public class GaurdSampleActivity extends AppCompatActivity {
     private Button btnSubmit;
     private RadioGroup rgGsHandover;
     private List<String> lots=new ArrayList<>();
-    private List<Data> whlist=new ArrayList<>();
+    private List<GsData> whlist=new ArrayList<>();
     private Integer whId=0;
-    private List<Datum> binlist=new ArrayList<>();
+    private List<GsDatum> binlist=new ArrayList<>();
 
-    private List<Datum1> subbinlist=new ArrayList<>();
+    private List<GsSubBinData> subbinlist=new ArrayList<>();
     private Integer binId=0;
     private Integer subbinId=0;
     private String lotnumber, harvestdate, whname, binname;
@@ -152,18 +153,18 @@ public class GaurdSampleActivity extends AppCompatActivity {
             getLotInfo(selectedItem);
         });
         dd_wh.setOnItemClickListener((parent, view, position, id) -> {
-            Data selectedWh = whlist.get(position);
+            GsData selectedWh = whlist.get(position);
             whId = selectedWh.getWhid();
             getBinList();
         });
         dd_bin.setOnItemClickListener((parent, view, position, id) -> {
-            Datum selectedBin = binlist.get(position);
+            GsDatum selectedBin = binlist.get(position);
             binId = selectedBin.getBinid();
             getSubbinList();
         });
         dd_subbin.setOnItemClickListener((parent, view, position, id) -> {
-            Datum1 selectedBin = subbinlist.get(position);
-            subbinId = selectedBin.getSubbinid();
+            GsSubBinData selectedSubbin = subbinlist.get(position);
+            subbinId = selectedSubbin.getBinid();
         });
 
         etBarcode.addTextChangedListener(new TextWatcher() {
@@ -406,7 +407,7 @@ public class GaurdSampleActivity extends AppCompatActivity {
         progressDialog.setMessage("Loading...");
         progressDialog.show();
         Log.e("Params:", userData.getMobile1()+"="+userData.getScode());
-        Call<BinListResponse> call =apiInterface.getBinList(userData.getMobile1(), userData.getScode(),whId);
+        Call<BinListResponse> call =apiInterface.getGsBinList(userData.getMobile1(), userData.getScode(),whId);
         call.enqueue(new Callback<>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -419,8 +420,14 @@ public class GaurdSampleActivity extends AppCompatActivity {
                             Toast.makeText(GaurdSampleActivity.this, binListResponse.getMsg(), Toast.LENGTH_SHORT).show();
                             binlist = binListResponse.getData();
                             List<String> binList = new ArrayList<>();
-                            for (Datum list : binlist) {
-                                binList.add(list.getBinname());
+                            for (GsDatum list : binlist) {
+
+                                if (list.getBinname() != null) {
+
+                                    binList.add(list.getBinname());
+
+                                }
+
                             }
                             ArrayAdapter<String> adapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_dropdown_item_1line, binList);
                             dd_bin.setAdapter(adapter);
@@ -463,31 +470,35 @@ public class GaurdSampleActivity extends AppCompatActivity {
         progressDialog.setMessage("Loading...");
         progressDialog.show();
         Log.e("Params:", userData.getMobile1()+"="+userData.getScode()+whId+"="+binId);
-        Call<SubBinListResponse> call =apiInterface.getSubbinList(userData.getMobile1(), userData.getScode(),whId,binId);
+        Call<GsSubBinListResponse> call = apiInterface.getGsSubbinList(userData.getMobile1(), userData.getScode(),whId,binId);
         call.enqueue(new Callback<>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
-            public void onResponse(@NonNull Call<SubBinListResponse> call, @NonNull Response<SubBinListResponse> response) {
+            public void onResponse(@NonNull Call<GsSubBinListResponse> call, @NonNull Response<GsSubBinListResponse> response) {
                 if (response.isSuccessful()) {
-                    SubBinListResponse subbinListResponse = response.body();
+                    GsSubBinListResponse subbinListResponse = response.body();
                     System.out.print("Response : " + subbinListResponse);
                     if (subbinListResponse != null) {
-                        if (subbinListResponse.getStatus()) {
-                            Toast.makeText(GaurdSampleActivity.this, subbinListResponse.getMsg(), Toast.LENGTH_SHORT).show();
-                            subbinlist = subbinListResponse.getData();
+                        List<GsSubBinData> data = subbinListResponse.getData();
+                        if (data != null && !data.isEmpty()) {
+                            subbinlist = data;
                             List<String> subbinList = new ArrayList<>();
-                            for (Datum1 list : subbinlist) {
-                                subbinList.add(list.getSubbinname());
+                            for (GsSubBinData list : subbinlist) {
+                                if (list.getOutercontainer() != null) {
+                                    subbinList.add(list.getOutercontainer());
+                                }
                             }
                             ArrayAdapter<String> adapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_dropdown_item_1line, subbinList);
                             dd_subbin.setAdapter(adapter);
                             // Show dropdown on click (even without typing)
                             dd_subbin.setOnClickListener(v -> dd_subbin.showDropDown());
                         } else {
-                            Utils.showAlert(GaurdSampleActivity.this, subbinListResponse.getMsg());
-                            //Toast.makeText(BagsActivationSetupActivity.this, actLotListResponse.getMsg(), Toast.LENGTH_SHORT).show();
+                            Utils.showAlert(GaurdSampleActivity.this, "No SubBin data available");
                         }
                         progressDialog.cancel();
+                    } else {
+                        progressDialog.cancel();
+                        Utils.showAlert(GaurdSampleActivity.this, "Empty response from server");
                     }
                 } else {
                     progressDialog.cancel();
@@ -505,7 +516,7 @@ public class GaurdSampleActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(@NonNull Call<SubBinListResponse> call, @NonNull Throwable t) {
+            public void onFailure(@NonNull Call<GsSubBinListResponse> call, @NonNull Throwable t) {
                 progressDialog.cancel();
                 Log.e("Error", "RetrofitError : " + t.getMessage());
                 Utils.showAlert(GaurdSampleActivity.this,"RetrofitError : " + t.getMessage());
@@ -574,7 +585,7 @@ public class GaurdSampleActivity extends AppCompatActivity {
         progressDialog.setMessage("Loading...");
         progressDialog.show();
         Log.e("Params:", userData.getMobile1()+"="+userData.getScode());
-        Call<WhListResponse> call =apiInterface.getWhList(userData.getMobile1(), userData.getScode());
+        Call<WhListResponse> call =apiInterface.getGsWhList(userData.getMobile1(), userData.getScode());
         call.enqueue(new Callback<>() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -587,11 +598,19 @@ public class GaurdSampleActivity extends AppCompatActivity {
                             Toast.makeText(GaurdSampleActivity.this, whListResponse.getMsg(), Toast.LENGTH_SHORT).show();
                             whlist = whListResponse.getData();
                             List<String> whList = new ArrayList<>();
-                            for (Data list : whlist) {
-                                whList.add(list.getWhname());
+                            for (GsData list : whlist) {
+
+                                if (list.getWhname() != null) {
+
+                                    whList.add(list.getWhname());
+
+                                }
+
                             }
+                            if (!whList.isEmpty()) {
                             ArrayAdapter<String> adapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_dropdown_item_1line, whList);
                             dd_wh.setAdapter(adapter);
+                            }
                             // Show dropdown on click (even without typing)
                             dd_wh.setOnClickListener(v -> dd_wh.showDropDown());
                         } else {
@@ -627,3 +646,13 @@ public class GaurdSampleActivity extends AppCompatActivity {
 
 
 }
+
+
+
+
+
+
+
+
+
+

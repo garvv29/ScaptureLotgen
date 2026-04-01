@@ -5,9 +5,10 @@ import com.seedtrac.lotgen.parser.activationsubmit.ActivationSubmitResponse;
 import com.seedtrac.lotgen.parser.activationtrlist.ActivationTrListResponse;
 import com.seedtrac.lotgen.parser.actlotlist.ActLotListResponse;
 import com.seedtrac.lotgen.parser.actremarklist.ActRemarksListResponse;
-import com.seedtrac.lotgen.parser.binlist.BinListResponse;
 import com.seedtrac.lotgen.parser.dashboarddata.DashboardDataResponse;
 import com.seedtrac.lotgen.parser.gsbarcodeinfo.GsBarcodeInfoResponse;
+import com.seedtrac.lotgen.parser.gsbinlist.BinListResponse;
+import com.seedtrac.lotgen.parser.gswhlist.WhListResponse;
 import com.seedtrac.lotgen.parser.labelprintingbarcodelist.LabelPrintingBarList;
 import com.seedtrac.lotgen.parser.loadinglist.LoadingListResponse;
 import com.seedtrac.lotgen.parser.loadingtrinfo.LoadingTrInfoResponse;
@@ -15,13 +16,14 @@ import com.seedtrac.lotgen.parser.loadingtrpendinglist.LoadingTrPendingListRespo
 import com.seedtrac.lotgen.parser.login.LoginResponse;
 import com.seedtrac.lotgen.parser.lotinfo.LotInfoResponse;
 import com.seedtrac.lotgen.parser.subbinlist.SubBinListResponse;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinListResponse;
+import com.seedtrac.lotgen.parser.gssubbinlist.GsSubBinData;
 import com.seedtrac.lotgen.parser.lotrecsubmit.LotRecSubmitSuccess;
 import com.seedtrac.lotgen.parser.pendinglotreport.PendingLotListReportResponse;
 import com.seedtrac.lotgen.parser.printlabel.PrintLabelInfo;
 import com.seedtrac.lotgen.parser.recpendinglotlist.RecPendingLotListResponse;
 import com.seedtrac.lotgen.parser.spcodewisesummary.SpCodeWiseSummaryResponse;
 import com.seedtrac.lotgen.parser.submitsuccess.SubmitSuccessResponse;
-import com.seedtrac.lotgen.parser.whlist.WhListResponse;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
@@ -91,13 +93,19 @@ public interface ApiInterface {
     Call<SubmitSuccessResponse> loadingFinalSubmit(@Query("scode") String scode, @Query("trid") String trid, @Query("vehiclepickup") String vehiclePickup);
 
     @GET("whlist.php")
-    Call<WhListResponse> getWhList(@Query("mobile1") String mobile, @Query("scode") String scode);
+    Call<com.seedtrac.lotgen.parser.whlist.WhListResponse> getWhList(@Query("mobile1") String mobile, @Query("scode") String scode);
 
     @GET("binlist.php")
-    Call<BinListResponse> getBinList(@Query("mobile1") String mobile, @Query("scode") String scode, @Query("whid") Integer whId);
+    Call<com.seedtrac.lotgen.parser.binlist.BinListResponse> getBinList(@Query("mobile1") String mobile, @Query("scode") String scode, @Query("whid") Integer whId);
 
-    @GET("subbinlist.php")
-    Call<SubBinListResponse> getSubbinList(@Query("mobile1") String mobile, @Query("scode") String scode, @Query("whid") Integer whId,@Query("binid") Integer binId);
+    @GET("gswhlist.php")
+    Call<com.seedtrac.lotgen.parser.gswhlist.WhListResponse> getGsWhList(@Query("mobile1") String mobile, @Query("scode") String scode);
+
+    @GET("gsbinlist.php")
+    Call<com.seedtrac.lotgen.parser.gsbinlist.BinListResponse> getGsBinList(@Query("mobile1") String mobile, @Query("scode") String scode, @Query("whid") Integer whId);
+
+    @GET("gssubbinlist.php")
+    Call<GsSubBinListResponse> getGsSubbinList(@Query("mobile1") String mobile, @Query("scode") String scode, @Query("whid") Integer whId, @Query("binid") Integer binId);
 
     @GET("lotrecpost.php")
     Call<LotRecSubmitSuccess> submitReceiveForm(@Query("mobile1") String mobile, @Query("scode") String scode,
@@ -164,3 +172,6 @@ public interface ApiInterface {
                                                                 @Query("sdate") String sdate, @Query("edate") String edate);
 
 }
+
+
+
